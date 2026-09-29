@@ -6,7 +6,7 @@ import { Plus, Trash2, Camera, Paperclip, X, AlertTriangle, CheckCircle2 } from 
 
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/useMe";
-import { AttachmentThumbs } from "@/components/procurely/AttachmentThumbs";
+import { AttachmentThumbs } from "@/components/kelvora/AttachmentThumbs";
 import {
   previewApprovalChain,
   submitRequisitionFn,
@@ -14,7 +14,7 @@ import {
   attachmentUploadUrlFn,
 } from "@/lib/procurement.functions";
 import { money, ROLE_LABELS } from "@/lib/format";
-import { PageHeader } from "@/components/procurely/bits";
+import { PageHeader } from "@/components/kelvora/bits";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,13 +32,13 @@ import {
 export const Route = createFileRoute("/_authenticated/requisitions/new")({
   head: () => ({
     meta: [
-      { title: "New requisition — Procurely Flow" },
+      { title: "New requisition — Kelvora" },
       {
         name: "description",
         content:
           "Raise a material request from site in under a minute and see who must approve it.",
       },
-      { property: "og:title", content: "New requisition — Procurely Flow" },
+      { property: "og:title", content: "New requisition — Kelvora" },
       { property: "og:description", content: "Fast, mobile-first material requests." },
     ],
   }),

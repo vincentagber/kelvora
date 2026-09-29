@@ -21,13 +21,13 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
         // Standard Meta WhatsApp Webhook Handshake
         const expectedToken =
           process.env["WHATSAPP_VERIFY_TOKEN"] ||
-          (process.env["NODE_ENV"] !== "production" ? "procurely_whatsapp_token" : "");
+          (process.env["NODE_ENV"] !== "production" ? "kelvora_whatsapp_token" : "");
 
         if (mode === "subscribe" && expectedToken && token === expectedToken) {
           return new Response(challenge || "", { status: 200 });
         }
 
-        return Response.json({ status: "Procurely Flow WhatsApp Webhook Active" }, { status: 200 });
+        return Response.json({ status: "Kelvora WhatsApp Webhook Active" }, { status: 200 });
       },
       POST: async ({ request }: { request: Request }) => {
         try {
@@ -95,9 +95,9 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
 
           const body = JSON.parse(rawBody || "{}");
 
-          // 1. Direct Procurely simulation payload (disallowed in production without internal secret key)
+          // 1. Direct Kelvora simulation payload (disallowed in production without internal secret key)
           if (body.stepId && (body.decision === "approved" || body.decision === "rejected")) {
-            const internalKey = request.headers.get("x-procurely-internal-key");
+            const internalKey = request.headers.get("x-kelvora-internal-key");
             const expectedInternalKey = process.env["INTERNAL_API_KEY"];
 
             if (isProduction && (!expectedInternalKey || internalKey !== expectedInternalKey)) {

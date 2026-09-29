@@ -39,7 +39,7 @@ export interface QueuedDeliveryRecord {
   lastError?: string;
 }
 
-const QUEUE_STORAGE_KEY = "procurely_offline_delivery_queue_v1";
+const QUEUE_STORAGE_KEY = "kelvora_offline_delivery_queue_v1";
 
 export function getQueuedDeliveries(): QueuedDeliveryRecord[] {
   if (typeof window === "undefined") return [];

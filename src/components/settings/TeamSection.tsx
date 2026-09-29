@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Trash2, Search, Mail, UserPlus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AppRole } from "@/lib/useMe";
-import { UserAvatar } from "@/components/procurely/UserAvatar";
+import { UserAvatar } from "@/components/kelvora/UserAvatar";
 import {
   updateMemberRoles,
   inviteTeammateFn,

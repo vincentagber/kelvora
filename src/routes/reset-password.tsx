@@ -11,15 +11,15 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Set a new password — Procurely Flow" },
+      { title: "Set a new password — Kelvora" },
       {
         name: "description",
-        content: "Choose a new password for your Procurely Flow account and sign back in securely.",
+        content: "Choose a new password for your Kelvora account and sign back in securely.",
       },
-      { property: "og:title", content: "Set a new password — Procurely Flow" },
+      { property: "og:title", content: "Set a new password — Kelvora" },
       {
         property: "og:description",
-        content: "Complete your Procurely Flow password reset.",
+        content: "Complete your Kelvora password reset.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -166,7 +166,7 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
     <main className="flex min-h-screen items-center justify-center bg-surface px-5 py-10">
       <div className="w-full max-w-md">
         <p className="font-display text-2xl uppercase tracking-wider text-primary">
-          Procurely Flow
+          Kelvora
         </p>
         <div className="mt-4 rounded-lg border border-border bg-card p-6">
           <h1 className="page-title text-foreground">{title}</h1>

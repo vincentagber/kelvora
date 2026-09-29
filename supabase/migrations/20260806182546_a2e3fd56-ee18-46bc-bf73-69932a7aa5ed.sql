@@ -30,7 +30,7 @@ ALTER TABLE public.organizations
   ADD CONSTRAINT organizations_status_check
   CHECK (status IN ('trial','active','overdue','suspended'));
 
--- 3. Procurely -> organization subscription invoices
+-- 3. Kelvora -> organization subscription invoices
 CREATE TABLE public.billing_invoices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,

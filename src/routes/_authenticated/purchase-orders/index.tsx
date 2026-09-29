@@ -4,20 +4,20 @@ import { useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { money, dateTime } from "@/lib/format";
-import { PageHeader, StatusPill, EmptyState } from "@/components/procurely/bits";
+import { PageHeader, StatusPill, EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, itemFadeIn, staggerContainer } from "@/components/ui/animated";
 
 export const Route = createFileRoute("/_authenticated/purchase-orders/")({
   head: () => ({
     meta: [
-      { title: "Purchase orders — Procurely Flow" },
+      { title: "Purchase orders — Kelvora" },
       {
         name: "description",
         content:
           "Every issued purchase order with its supplier, settlement currency and selection reasoning.",
       },
-      { property: "og:title", content: "Purchase orders — Procurely Flow" },
+      { property: "og:title", content: "Purchase orders — Kelvora" },
       { property: "og:description", content: "Issued POs and their audit context." },
     ],
   }),

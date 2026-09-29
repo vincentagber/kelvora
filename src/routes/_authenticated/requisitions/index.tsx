@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { money, shortDate, STATUS_LABELS } from "@/lib/format";
-import { PageHeader, StatusPill, EmptyState } from "@/components/procurely/bits";
+import { PageHeader, StatusPill, EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,12 +18,12 @@ import {
 export const Route = createFileRoute("/_authenticated/requisitions/")({
   head: () => ({
     meta: [
-      { title: "Requisitions — Procurely Flow" },
+      { title: "Requisitions — Kelvora" },
       {
         name: "description",
         content: "Scan every material request, its value, budget flag and approval status.",
       },
-      { property: "og:title", content: "Requisitions — Procurely Flow" },
+      { property: "og:title", content: "Requisitions — Kelvora" },
       { property: "og:description", content: "The full requisition queue for your organization." },
     ],
   }),

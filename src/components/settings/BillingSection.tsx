@@ -20,7 +20,7 @@ import {
   getSubscriptionStatementsFn,
   reportSubscriptionTransferFn,
 } from "@/lib/procurement.functions";
-import { PciProtectionEmblemIcon } from "@/components/procurely/ProductDesignerIcons";
+import { PciProtectionEmblemIcon } from "@/components/kelvora/ProductDesignerIcons";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/useMe";
 import { money, shortDate, dateTime } from "@/lib/format";
@@ -673,7 +673,7 @@ export function BillingSection({ isAdmin }: { isAdmin: boolean }) {
                 </span>
               </div>
               <p className="text-[11px] leading-relaxed text-slate-600 font-normal">
-                Procurely Flow enforces a strict zero raw-card storage policy. All billing
+                Kelvora enforces a strict zero raw-card storage policy. All billing
                 collections route through licensed Nigerian financial institutions (Providus, Wema,
                 Monnify, Paystack) via dedicated virtual accounts and bank transfers to prevent
                 auto-renew card failures and naira volatility risks.
@@ -720,10 +720,10 @@ export function BillingSection({ isAdmin }: { isAdmin: boolean }) {
               <div>
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-7 rounded-lg bg-[#0B1457] flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                    PF
+                    KV
                   </div>
                   <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                    Procurely Flow Technologies Nigeria Ltd
+                    Kelvora Technologies Nigeria Ltd
                   </h3>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
@@ -804,7 +804,7 @@ export function BillingSection({ isAdmin }: { isAdmin: boolean }) {
                     <tr>
                       <td className="px-4 py-3">
                         <p className="font-semibold text-slate-900">
-                          Procurely Flow Enterprise SaaS — {viewingInvoice.plan_tier} Tier
+                          Kelvora Enterprise SaaS — {viewingInvoice.plan_tier} Tier
                         </p>
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           Multi-Site Requisition Routing, WhatsApp Token Approvals, 3-Way Invoice

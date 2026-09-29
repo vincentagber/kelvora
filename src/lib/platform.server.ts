@@ -38,7 +38,7 @@ async function findPlatformAdminRow(userId: string, email: string) {
 
 export async function requirePlatformAdmin(userId: string, email = ""): Promise<PlatformActor> {
   const row = await findPlatformAdminRow(userId, email);
-  if (!row) throw new Error("This area is restricted to Procurely platform staff.");
+  if (!row) throw new Error("This area is restricted to Kelvora platform staff.");
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
@@ -60,7 +60,7 @@ export async function isPlatformAdmin(userId: string, email = "") {
 /**
  * Platform actions land in the same permanent audit log as approvals, but with a
  * `platform.` action prefix and no org role, so it is always clear the action
- * came from Procurely staff rather than the organization itself.
+ * came from Kelvora staff rather than the organization itself.
  */
 async function logPlatformAction(entry: {
   orgId: string;
@@ -71,7 +71,7 @@ async function logPlatformAction(entry: {
   await supabaseAdmin.from("approval_audit_log").insert({
     org_id: entry.orgId,
     actor_id: entry.actor.userId,
-    actor_name: `${entry.actor.fullName} (Procurely platform)`,
+    actor_name: `${entry.actor.fullName} (Kelvora platform)`,
     actor_role: null,
     action: `platform.${entry.action}`,
     detail: entry.detail ?? null,
@@ -435,7 +435,7 @@ export async function organizationAccessState(userId: string) {
 }
 
 /* ------------------------------------------------------------------ *
- * Subscription billing (Procurely -> customer organization)
+ * Subscription billing (Kelvora -> customer organization)
  * Distinct from `invoices`, which holds SUPPLIER invoices against a PO
  * for the future three-way match / NRS e-invoicing work.
  * ------------------------------------------------------------------ */

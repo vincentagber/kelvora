@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Trash2, ShieldCheck, Mail, Building2, Check, User, Loader2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, useUpdateProfile } from "@/lib/useMe";
-import { UserAvatar } from "@/components/procurely/UserAvatar";
+import { UserAvatar } from "@/components/kelvora/UserAvatar";
 import { ROLE_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,7 +231,7 @@ export function ProfileSection() {
                 <span>Organization &amp; Clearance Level:</span>
               </div>
               <p className="text-xs font-semibold text-slate-800">
-                {me.data?.orgName || "Procurely Flow Enterprise"}
+                {me.data?.orgName || "Kelvora Enterprise"}
               </p>
               <div className="flex flex-wrap gap-1.5 mt-0.5">
                 {me.data?.roles && me.data.roles.length > 0 ? (

@@ -18,7 +18,7 @@ import {
   getPoChangeOrdersFn,
 } from "@/lib/procurement.functions";
 import { money, shortDate, dateTime, ROLE_LABELS } from "@/lib/format";
-import { StatusPill } from "@/components/procurely/bits";
+import { StatusPill } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,13 +36,13 @@ import { useMe, can } from "@/lib/useMe";
 export const Route = createFileRoute("/_authenticated/purchase-orders/$id")({
   head: () => ({
     meta: [
-      { title: "Purchase order — Procurely Flow" },
+      { title: "Purchase order — Kelvora" },
       {
         name: "description",
         content:
           "The full purchase order: supplier and buyer details, priced line items, settlement currency, delivery terms, change orders, and the approval history behind it.",
       },
-      { property: "og:title", content: "Purchase order — Procurely Flow" },
+      { property: "og:title", content: "Purchase order — Kelvora" },
       {
         property: "og:description",
         content:

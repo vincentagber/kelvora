@@ -26,23 +26,23 @@ if (process.platform === "linux") {
 
   try {
     require(bindingPkg);
-    console.log(`[Procurely Flow Build] Native ${bindingPkg} is already present.`);
+    console.log(`[Kelvora Build] Native ${bindingPkg} is already present.`);
   } catch {
     console.log(
-      `[Procurely Flow Build] Linux ${process.arch} (${musl ? "musl" : "glibc"}) detected. Installing ${bindingPkg}@1.2.9...`,
+      `[Kelvora Build] Linux ${process.arch} (${musl ? "musl" : "glibc"}) detected. Installing ${bindingPkg}@1.2.9...`,
     );
     try {
       execSync(`npm install ${bindingPkg}@1.2.9 --no-save`, { stdio: "inherit" });
-      console.log(`[Procurely Flow Build] Successfully installed ${bindingPkg}!`);
+      console.log(`[Kelvora Build] Successfully installed ${bindingPkg}!`);
     } catch (installErr) {
       console.error(
-        `[Procurely Flow Build] Warning: Failed to install ${bindingPkg}:`,
+        `[Kelvora Build] Warning: Failed to install ${bindingPkg}:`,
         installErr.message,
       );
     }
   }
 } else {
   console.log(
-    `[Procurely Flow Build] Platform is ${process.platform}-${process.arch}. No Linux native binding required.`,
+    `[Kelvora Build] Platform is ${process.platform}-${process.arch}. No Linux native binding required.`,
   );
 }

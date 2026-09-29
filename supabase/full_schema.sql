@@ -1,5 +1,5 @@
 -- ==============================================================================
--- PROCURELY / PROCUREMENT FLOW - COMPLETE MASTER DATABASE SCHEMA
+-- KELVORA / PROCUREMENT FLOW - COMPLETE MASTER DATABASE SCHEMA
 -- ==============================================================================
 -- This single script creates all necessary ENUMs, Tables, Functions, Triggers,
 -- Row-Level Security (RLS) policies, and Indexes for the entire application.
@@ -1350,7 +1350,7 @@ EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 -- 1. Create Organization (Acme Infrastructure Ltd)
 INSERT INTO public.organizations (id, name, base_currency, plan, status, primary_contact_email)
-VALUES ('11111111-1111-1111-1111-111111111111', 'Acme Infrastructure Ltd', 'NGN', 'business', 'active', 'admin@procurely.com')
+VALUES ('11111111-1111-1111-1111-111111111111', 'Acme Infrastructure Ltd', 'NGN', 'business', 'active', 'admin@kelvora.com')
 ON CONFLICT (id) DO UPDATE 
 SET name = EXCLUDED.name, status = EXCLUDED.status;
 

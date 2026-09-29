@@ -6,12 +6,12 @@ const SUPABASE_ANON_KEY = "sb_publishable_SXkIbIxSfhNZEprveEh2Jw_O2ebQSSR";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const users = [
-  { email: "admin@procurely.com", password: "Procurely@2026!", name: "Chidi Admin" },
-  { email: "requester@procurely.com", password: "Procurely@2026!", name: "Tunde Requester" },
-  { email: "approver@procurely.com", password: "Procurely@2026!", name: "Ngozi Approver" },
-  { email: "procurement@procurely.com", password: "Procurely@2026!", name: "Emeka Procurement" },
-  { email: "finance@procurely.com", password: "Procurely@2026!", name: "Amina Finance" },
-  { email: "executive@procurely.com", password: "Procurely@2026!", name: "Folake Executive" },
+  { email: "admin@kelvora.com", password: "Kelvora@2026!", name: "Chidi Admin" },
+  { email: "requester@kelvora.com", password: "Kelvora@2026!", name: "Tunde Requester" },
+  { email: "approver@kelvora.com", password: "Kelvora@2026!", name: "Ngozi Approver" },
+  { email: "procurement@kelvora.com", password: "Kelvora@2026!", name: "Emeka Procurement" },
+  { email: "finance@kelvora.com", password: "Kelvora@2026!", name: "Amina Finance" },
+  { email: "executive@kelvora.com", password: "Kelvora@2026!", name: "Folake Executive" },
 ];
 
 async function main() {

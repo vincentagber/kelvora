@@ -53,13 +53,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/invoices")({
   head: () => ({
     meta: [
-      { title: "Invoices & Three-Way Matching — Procurely Flow" },
+      { title: "Invoices & Three-Way Matching — Kelvora" },
       {
         name: "description",
         content:
           "NRS e-Invoicing compliant 3-way matching of POs, goods-received records, and supplier invoices before payment release.",
       },
-      { property: "og:title", content: "Invoices & 3-Way Match — Procurely Flow" },
+      { property: "og:title", content: "Invoices & 3-Way Match — Kelvora" },
       {
         property: "og:description",
         content: "NRS e-Invoicing UBL/PEPPOL BIS 3.0 matching & payments.",
@@ -271,7 +271,7 @@ function InvoicesPage() {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        res.filename || `procurely-accounting-ledger-${new Date().toISOString().slice(0, 10)}.csv`,
+        res.filename || `kelvora-accounting-ledger-${new Date().toISOString().slice(0, 10)}.csv`,
       );
       document.body.appendChild(link);
       link.click();

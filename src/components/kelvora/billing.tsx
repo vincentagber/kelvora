@@ -8,7 +8,7 @@ import {
   createBillingInvoiceFn,
   markBillingInvoicePaidFn,
 } from "@/lib/platform.functions";
-import { DEFAULT_VAT_RATE, PLAN_LABELS, PROCURELY_BANK_DETAILS } from "@/lib/billing";
+import { DEFAULT_VAT_RATE, PLAN_LABELS, KELVORA_BANK_DETAILS } from "@/lib/billing";
 import { money, shortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +85,7 @@ export function BillingSection({ orgId }: { orgId: string }) {
       </div>
 
       <p className="mt-2 text-sm text-muted-foreground">
-        Procurely invoices this organization for their subscription. Payment is by bank transfer — a
+        Kelvora invoices this organization for their subscription. Payment is by bank transfer — a
         platform admin marks an invoice paid once the transfer is confirmed.
       </p>
 
@@ -164,10 +164,10 @@ export function BillingSection({ orgId }: { orgId: string }) {
                         <Banknote className="h-4 w-4" aria-hidden /> Pay by bank transfer
                       </p>
                       <p className="mt-1">
-                        {PROCURELY_BANK_DETAILS.accountName} · {PROCURELY_BANK_DETAILS.bankName} ·{" "}
-                        {PROCURELY_BANK_DETAILS.accountNumber} ({PROCURELY_BANK_DETAILS.currency})
+                        {KELVORA_BANK_DETAILS.accountName} · {KELVORA_BANK_DETAILS.bankName} ·{" "}
+                        {KELVORA_BANK_DETAILS.accountNumber} ({KELVORA_BANK_DETAILS.currency})
                       </p>
-                      <p className="mt-1">{PROCURELY_BANK_DETAILS.note}</p>
+                      <p className="mt-1">{KELVORA_BANK_DETAILS.note}</p>
                     </div>
 
                     {inv.status === "paid" ? (

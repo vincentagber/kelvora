@@ -37,16 +37,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/platform-admin/")({
   head: () => ({
     meta: [
-      { title: "Platform Admin — Organizations | Procurely" },
+      { title: "Platform Admin — Organizations | Kelvora" },
       {
         name: "description",
         content:
-          "Procurely platform staff console: review customer organizations, plans, usage and account status.",
+          "Kelvora platform staff console: review customer organizations, plans, usage and account status.",
       },
-      { property: "og:title", content: "Platform Admin — Organizations | Procurely" },
+      { property: "og:title", content: "Platform Admin — Organizations | Kelvora" },
       {
         property: "og:description",
-        content: "Provision, review and suspend customer organizations across Procurely.",
+        content: "Provision, review and suspend customer organizations across Kelvora.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -116,7 +116,7 @@ function OrganizationsPage() {
         <div>
           <h1 className="page-title text-3xl">Organizations</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every customer tenant on Procurely. Visibility here is read-only — provisioning, plan
+            Every customer tenant on Kelvora. Visibility here is read-only — provisioning, plan
             and status changes are the only writes, and all of them are audit-logged.
           </p>
         </div>

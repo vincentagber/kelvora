@@ -58,7 +58,7 @@ export async function dispatchTermiiMessage(input: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: cleanPhone,
-          from: "Procurely",
+          from: "Kelvora",
           sms: input.message,
           type: "plain",
           channel: input.channel || "whatsapp",
@@ -123,12 +123,12 @@ export async function dispatchApprovalNotification(
 
   const resendApiKey = process.env["RESEND_API_KEY"];
   const emailDriver = process.env["EMAIL_DRIVER"] || "console";
-  const fromEmail = process.env["EMAIL_FROM"] || "Procurely Flow <notifications@procurely.app>";
+  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <notifications@kelvora.app>";
 
   // Dispatch WhatsApp alert if phone number is provided
   if (params.recipientPhone) {
     const waText =
-      `Procurely Flow: Spend Requisition ${params.requisitionNumber} needs your approval as ${params.approverRole}.\n\n` +
+      `Kelvora: Spend Requisition ${params.requisitionNumber} needs your approval as ${params.approverRole}.\n\n` +
       `Title: ${params.requisitionTitle}\n` +
       `Amount: ₦${params.totalAmountNgn.toLocaleString("en-NG", { minimumFractionDigits: 2 })}\n` +
       `Requested by: ${params.requesterName}\n\n` +
@@ -236,12 +236,12 @@ export async function dispatchPoAwardNotification(
 
   const resendApiKey = process.env["RESEND_API_KEY"];
   const emailDriver = process.env["EMAIL_DRIVER"] || "console";
-  const fromEmail = process.env["EMAIL_FROM"] || "Procurely Flow <notifications@procurely.app>";
+  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <notifications@kelvora.app>";
 
   // Optional WhatsApp alert to supplier contact
   if (params.recipientPhone) {
     const waText =
-      `Procurely Flow: Purchase Order Awarded!\n\n` +
+      `Kelvora: Purchase Order Awarded!\n\n` +
       `Order: ${params.poNumber}\n` +
       `Total: ${params.currency} ${params.totalAmount.toLocaleString()}\n\n` +
       `Please review order specifications and submit delivery confirmation here:\n${ackUrl}`;

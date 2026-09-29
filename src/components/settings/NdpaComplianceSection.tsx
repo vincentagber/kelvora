@@ -39,7 +39,7 @@ export function NdpaComplianceSection({ isAdmin }: { isAdmin: boolean }) {
               </span>
             </div>
             <p className="text-xs text-slate-500 font-normal leading-relaxed">
-              Procurely Flow enforces strict multi-tenant isolation, cryptographic audit trails, and
+              Kelvora enforces strict multi-tenant isolation, cryptographic audit trails, and
               automatic PII minimization under Nigeria Data Protection Commission (NDPC)
               regulations.
             </p>

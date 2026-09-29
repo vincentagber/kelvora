@@ -85,7 +85,7 @@ export function generateSapS4HanaJournalPayload(
         DocumentDate: record.approvedAt.split("T")[0] || today,
         PostingDate: today,
         AccountingDocumentType: "KZ", // Payment disbursement
-        DocumentHeaderText: `Procurely Pay ${record.paymentId.slice(0, 10)}`,
+        DocumentHeaderText: `Kelvora Pay ${record.paymentId.slice(0, 10)}`,
         Reference1IDByBusinessPartner: record.invoiceNumber,
         CreatedByUser: record.approvedBy,
       },

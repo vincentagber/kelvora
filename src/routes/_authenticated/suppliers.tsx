@@ -7,7 +7,7 @@ import { Pencil, Trash2, Search, Building2, AlertTriangle, Plus, X, Check } from
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, can } from "@/lib/useMe";
 import { cn } from "@/lib/utils";
-import { PageHeader, EmptyState } from "@/components/procurely/bits";
+import { PageHeader, EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,12 +25,12 @@ import { motion, itemFadeIn, staggerContainer } from "@/components/ui/animated";
 export const Route = createFileRoute("/_authenticated/suppliers")({
   head: () => ({
     meta: [
-      { title: "Suppliers — Procurely Flow" },
+      { title: "Suppliers — Kelvora" },
       {
         name: "description",
         content: "Approved supplier directory, tax identification, and digital RFQ compliance.",
       },
-      { property: "og:title", content: "Suppliers — Procurely Flow" },
+      { property: "og:title", content: "Suppliers — Kelvora" },
       {
         property: "og:description",
         content: "Manage approved vendors and invitation eligibility.",

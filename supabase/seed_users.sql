@@ -1,7 +1,7 @@
 -- ==============================================================================
--- PROCURELY FLOW - DEMO USERS & INITIAL SEED DATA
+-- KELVORA - DEMO USERS & INITIAL SEED DATA
 -- ==============================================================================
--- Password for all accounts: Procurely@2026!
+-- Password for all accounts: Kelvora@2026!
 -- ==============================================================================
 
 SET search_path = public, extensions, auth;
@@ -17,7 +17,7 @@ DECLARE
     v_finance_id UUID := 'a5555555-5555-5555-5555-555555555555';
     v_executive_id UUID := 'a6666666-6666-6666-6666-666666666666';
 
-    v_encrypted_pw TEXT := extensions.crypt('Procurely@2026!', extensions.gen_salt('bf'));
+    v_encrypted_pw TEXT := extensions.crypt('Kelvora@2026!', extensions.gen_salt('bf'));
 
     v_project_id UUID := '22222222-2222-2222-2222-222222222222';
     v_supplier_id UUID := '33333333-3333-3333-3333-333333333333';
@@ -27,7 +27,7 @@ DECLARE
 BEGIN
     -- 1. Create Organization
     INSERT INTO public.organizations (id, name, base_currency, plan, status, primary_contact_email)
-    VALUES (v_org_id, 'Acme Infrastructure Ltd', 'NGN', 'business', 'active', 'admin@procurely.com')
+    VALUES (v_org_id, 'Acme Infrastructure Ltd', 'NGN', 'business', 'active', 'admin@kelvora.com')
     ON CONFLICT (id) DO UPDATE 
     SET name = EXCLUDED.name, status = EXCLUDED.status;
 
@@ -38,7 +38,7 @@ BEGIN
         raw_app_meta_data, raw_user_meta_data, is_super_admin, is_sso_user, created_at, updated_at
     ) VALUES (
         v_admin_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'admin@procurely.com', v_encrypted_pw, NOW(),
+        'admin@kelvora.com', v_encrypted_pw, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Chidi Admin"}'::jsonb, false, false, NOW(), NOW()
     ) ON CONFLICT (id) DO UPDATE 
     SET encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = NOW();
@@ -49,7 +49,7 @@ BEGIN
         raw_app_meta_data, raw_user_meta_data, is_super_admin, is_sso_user, created_at, updated_at
     ) VALUES (
         v_requester_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'requester@procurely.com', v_encrypted_pw, NOW(),
+        'requester@kelvora.com', v_encrypted_pw, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Tunde Requester"}'::jsonb, false, false, NOW(), NOW()
     ) ON CONFLICT (id) DO UPDATE 
     SET encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = NOW();
@@ -60,7 +60,7 @@ BEGIN
         raw_app_meta_data, raw_user_meta_data, is_super_admin, is_sso_user, created_at, updated_at
     ) VALUES (
         v_approver_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'approver@procurely.com', v_encrypted_pw, NOW(),
+        'approver@kelvora.com', v_encrypted_pw, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Ngozi Approver"}'::jsonb, false, false, NOW(), NOW()
     ) ON CONFLICT (id) DO UPDATE 
     SET encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = NOW();
@@ -71,7 +71,7 @@ BEGIN
         raw_app_meta_data, raw_user_meta_data, is_super_admin, is_sso_user, created_at, updated_at
     ) VALUES (
         v_procurement_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'procurement@procurely.com', v_encrypted_pw, NOW(),
+        'procurement@kelvora.com', v_encrypted_pw, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Emeka Procurement"}'::jsonb, false, false, NOW(), NOW()
     ) ON CONFLICT (id) DO UPDATE 
     SET encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = NOW();
@@ -82,7 +82,7 @@ BEGIN
         raw_app_meta_data, raw_user_meta_data, is_super_admin, is_sso_user, created_at, updated_at
     ) VALUES (
         v_finance_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'finance@procurely.com', v_encrypted_pw, NOW(),
+        'finance@kelvora.com', v_encrypted_pw, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Amina Finance"}'::jsonb, false, false, NOW(), NOW()
     ) ON CONFLICT (id) DO UPDATE 
     SET encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = NOW();
@@ -93,7 +93,7 @@ BEGIN
         raw_app_meta_data, raw_user_meta_data, is_super_admin, is_sso_user, created_at, updated_at
     ) VALUES (
         v_executive_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'executive@procurely.com', v_encrypted_pw, NOW(),
+        'executive@kelvora.com', v_encrypted_pw, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Folake Executive"}'::jsonb, false, false, NOW(), NOW()
     ) ON CONFLICT (id) DO UPDATE 
     SET encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = NOW();
@@ -101,22 +101,22 @@ BEGIN
     -- 3. Create Corresponding Identities in auth.identities (Required by Supabase Auth UI)
     INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
     VALUES
-        (v_admin_id, v_admin_id, jsonb_build_object('sub', v_admin_id::text, 'email', 'admin@procurely.com'), 'email', v_admin_id::text, NOW(), NOW(), NOW()),
-        (v_requester_id, v_requester_id, jsonb_build_object('sub', v_requester_id::text, 'email', 'requester@procurely.com'), 'email', v_requester_id::text, NOW(), NOW(), NOW()),
-        (v_approver_id, v_approver_id, jsonb_build_object('sub', v_approver_id::text, 'email', 'approver@procurely.com'), 'email', v_approver_id::text, NOW(), NOW(), NOW()),
-        (v_procurement_id, v_procurement_id, jsonb_build_object('sub', v_procurement_id::text, 'email', 'procurement@procurely.com'), 'email', v_procurement_id::text, NOW(), NOW(), NOW()),
-        (v_finance_id, v_finance_id, jsonb_build_object('sub', v_finance_id::text, 'email', 'finance@procurely.com'), 'email', v_finance_id::text, NOW(), NOW(), NOW()),
-        (v_executive_id, v_executive_id, jsonb_build_object('sub', v_executive_id::text, 'email', 'executive@procurely.com'), 'email', v_executive_id::text, NOW(), NOW(), NOW())
+        (v_admin_id, v_admin_id, jsonb_build_object('sub', v_admin_id::text, 'email', 'admin@kelvora.com'), 'email', v_admin_id::text, NOW(), NOW(), NOW()),
+        (v_requester_id, v_requester_id, jsonb_build_object('sub', v_requester_id::text, 'email', 'requester@kelvora.com'), 'email', v_requester_id::text, NOW(), NOW(), NOW()),
+        (v_approver_id, v_approver_id, jsonb_build_object('sub', v_approver_id::text, 'email', 'approver@kelvora.com'), 'email', v_approver_id::text, NOW(), NOW(), NOW()),
+        (v_procurement_id, v_procurement_id, jsonb_build_object('sub', v_procurement_id::text, 'email', 'procurement@kelvora.com'), 'email', v_procurement_id::text, NOW(), NOW(), NOW()),
+        (v_finance_id, v_finance_id, jsonb_build_object('sub', v_finance_id::text, 'email', 'finance@kelvora.com'), 'email', v_finance_id::text, NOW(), NOW(), NOW()),
+        (v_executive_id, v_executive_id, jsonb_build_object('sub', v_executive_id::text, 'email', 'executive@kelvora.com'), 'email', v_executive_id::text, NOW(), NOW(), NOW())
     ON CONFLICT (provider, provider_id) DO NOTHING;
 
     -- 4. Create Public Profiles
     INSERT INTO public.profiles (id, org_id, full_name, email, department) VALUES
-        (v_admin_id, v_org_id, 'Chidi Admin', 'admin@procurely.com', 'Operations & IT'),
-        (v_requester_id, v_org_id, 'Tunde Requester', 'requester@procurely.com', 'Engineering & Construction'),
-        (v_approver_id, v_org_id, 'Ngozi Approver', 'approver@procurely.com', 'Project Management'),
-        (v_procurement_id, v_org_id, 'Emeka Procurement', 'procurement@procurely.com', 'Supply Chain'),
-        (v_finance_id, v_org_id, 'Amina Finance', 'finance@procurely.com', 'Finance & Accounts'),
-        (v_executive_id, v_org_id, 'Folake Executive', 'executive@procurely.com', 'Executive Office')
+        (v_admin_id, v_org_id, 'Chidi Admin', 'admin@kelvora.com', 'Operations & IT'),
+        (v_requester_id, v_org_id, 'Tunde Requester', 'requester@kelvora.com', 'Engineering & Construction'),
+        (v_approver_id, v_org_id, 'Ngozi Approver', 'approver@kelvora.com', 'Project Management'),
+        (v_procurement_id, v_org_id, 'Emeka Procurement', 'procurement@kelvora.com', 'Supply Chain'),
+        (v_finance_id, v_org_id, 'Amina Finance', 'finance@kelvora.com', 'Finance & Accounts'),
+        (v_executive_id, v_org_id, 'Folake Executive', 'executive@kelvora.com', 'Executive Office')
     ON CONFLICT (id) DO UPDATE 
     SET org_id = EXCLUDED.org_id, full_name = EXCLUDED.full_name, department = EXCLUDED.department;
 

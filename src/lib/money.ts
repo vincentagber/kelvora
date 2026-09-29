@@ -1,5 +1,5 @@
 /**
- * Central Financial & Currency Abstraction for Procurely Flow
+ * Central Financial & Currency Abstraction for Kelvora
  *
  * Requirements:
  * - Zero JavaScript floating-point errors on currency/tax calculations.

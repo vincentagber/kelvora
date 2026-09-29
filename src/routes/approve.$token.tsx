@@ -25,12 +25,12 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/approve/$token")({
   head: () => ({
     meta: [
-      { title: "One-Click Requisition Approval — Procurely Flow" },
+      { title: "One-Click Requisition Approval — Kelvora" },
       {
         name: "description",
         content: "Secure, real-time 1-click requisition approval via Email and WhatsApp.",
       },
-      { property: "og:title", content: "One-Click Requisition Approval — Procurely Flow" },
+      { property: "og:title", content: "One-Click Requisition Approval — Kelvora" },
       {
         property: "og:description",
         content: "Instant procurement clearance without login hurdles.",
@@ -130,10 +130,10 @@ function TokenApprovalPage() {
         <div className="flex items-center justify-between pb-3 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-[#0B1457] flex items-center justify-center text-white font-black text-sm shadow-xs">
-              PF
+              KV
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">Procurely Flow</h1>
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight">Kelvora</h1>
               <p className="text-[10px] text-slate-400 font-medium">
                 Multi-Channel Executive Clearance
               </p>
@@ -355,7 +355,7 @@ function TokenApprovalPage() {
 
             <div className="text-center pt-2">
               <p className="text-[11px] text-slate-400">
-                Authorized via Procurely Flow Single-Use Token · Audited per NDPA 2023
+                Authorized via Kelvora Single-Use Token · Audited per NDPA 2023
               </p>
             </div>
           </div>

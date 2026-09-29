@@ -1,4 +1,4 @@
-# Procurely Flow
+# Kelvora
 
 An enterprise-grade procurement management and approval orchestration platform built for high-throughput procurement operations.
 

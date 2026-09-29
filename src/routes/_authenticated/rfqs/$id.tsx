@@ -33,7 +33,7 @@ import {
 } from "@/lib/procurement.functions";
 import { analyzeSupplierQuotes, SideBySideBidAnalysis } from "@/lib/quotationComparison";
 import { money, shortDate, dateTime } from "@/lib/format";
-import { PageHeader, StatusPill, EmptyState } from "@/components/procurely/bits";
+import { PageHeader, StatusPill, EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,13 +99,13 @@ interface RfqRequisitionData {
 export const Route = createFileRoute("/_authenticated/rfqs/$id")({
   head: () => ({
     meta: [
-      { title: "Automated Quotation Comparison — Procurely Flow" },
+      { title: "Automated Quotation Comparison — Kelvora" },
       {
         name: "description",
         content:
           "Side-by-side bid analysis: line-item lowest prices, total landed cost, delivery timelines, credit terms, and recommended award.",
       },
-      { property: "og:title", content: "Quotation Comparison & Bid Analysis — Procurely Flow" },
+      { property: "og:title", content: "Quotation Comparison & Bid Analysis — Kelvora" },
       { property: "og:description", content: "Signature side-by-side procurement bid matrix." },
     ],
   }),

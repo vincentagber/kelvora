@@ -469,7 +469,7 @@ export async function generateStepApprovalLinks(stepId: string, originUrl?: stri
   const amountFormatted = `₦${Number(req.total_amount).toLocaleString("en-NG")}`;
 
   const whatsappMessage = [
-    `📋 *PROCURELY FLOW — REQUISITION APPROVAL REQUIRED*`,
+    `📋 *KELVORA — REQUISITION APPROVAL REQUIRED*`,
     ``,
     `*Requisition:* ${req.reference}`,
     `*Title:* ${req.title}`,
@@ -2898,7 +2898,7 @@ export async function generateSubscriptionBillServer(
     .eq("id", actor.orgId)
     .single();
 
-  const orgName = org?.name || "Procurely Customer";
+  const orgName = org?.name || "Kelvora Customer";
 
   const bill = generateSubscriptionBill({
     orgId: actor.orgId,
@@ -2932,7 +2932,7 @@ export async function generateSubscriptionBillServer(
         bill.virtualAccountDetails?.accountNumber ||
         `99${Math.floor(10000000 + Math.random() * 90000000)}`,
       virtual_account_name:
-        bill.virtualAccountDetails?.accountName || `Procurely Flow - ${orgName.slice(0, 20)}`,
+        bill.virtualAccountDetails?.accountName || `Kelvora - ${orgName.slice(0, 20)}`,
       status: "PENDING",
       period_start: periodStart,
       period_end: periodEnd,
@@ -3157,7 +3157,7 @@ export async function exportAccountingLedger(userId: string, currency: "NGN" | "
     };
   });
 
-  const exportResult = generateAccountingCsv(org?.name ?? "Procurely Flow", records, currency);
+  const exportResult = generateAccountingCsv(org?.name ?? "Kelvora", records, currency);
 
   await logAudit({
     orgId: actor.orgId,

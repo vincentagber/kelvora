@@ -27,7 +27,7 @@ function NotFoundComponent() {
             to="/"
             className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Back to Procurely
+            Back to Kelvora
           </Link>
         </div>
       </div>
@@ -76,7 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Procurely Flow — Procurement workflow" },
+      { title: "Kelvora — Procurement workflow" },
       {
         name: "description",
         content:

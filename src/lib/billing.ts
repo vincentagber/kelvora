@@ -30,12 +30,12 @@ export const DEFAULT_VAT_RATE = 7.5;
  * Recurring card billing is unreliable in Nigeria, so subscription invoices are
  * settled by bank transfer and confirmed manually by platform staff.
  */
-export const PROCURELY_BANK_DETAILS = {
-  accountName: "Procurely Technologies Ltd",
+export const KELVORA_BANK_DETAILS = {
+  accountName: "Kelvora Technologies Ltd",
   bankName: "Guaranty Trust Bank (GTBank)",
   accountNumber: "0123456789",
   currency: "NGN",
-  note: "Use the invoice number as the transfer narration, then email proof of payment to billing@procurely.app.",
+  note: "Use the invoice number as the transfer narration, then email proof of payment to billing@kelvora.app.",
 };
 
 export const planSchema = z.enum(["starter", "growth", "business", "enterprise", "custom"]);

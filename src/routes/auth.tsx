@@ -29,13 +29,13 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign In — Procurely Flow" },
+      { title: "Sign In — Kelvora" },
       {
         name: "description",
         content:
           "Enterprise procurement operating system for construction, energy, and commercial leaders. Requisitions, threshold approvals, and 3-way matching.",
       },
-      { property: "og:title", content: "Sign In — Procurely Flow" },
+      { property: "og:title", content: "Sign In — Kelvora" },
       {
         property: "og:description",
         content: "Access your organization's verified procurement workspace.",
@@ -46,16 +46,16 @@ export const Route = createFileRoute("/auth")({
 });
 
 const DEMO_PRESETS = [
-  { label: "Admin", email: "admin@procurely.com", desc: "Full organization & system control" },
-  { label: "Site Lead", email: "requester@procurely.com", desc: "Field material requisitions" },
+  { label: "Admin", email: "admin@kelvora.com", desc: "Full organization & system control" },
+  { label: "Site Lead", email: "requester@kelvora.com", desc: "Field material requisitions" },
   {
     label: "Approver",
-    email: "approver@procurely.com",
+    email: "approver@kelvora.com",
     desc: "Project Director threshold sign-off",
   },
-  { label: "Procurement", email: "procurement@procurely.com", desc: "RFQ issuing & PO creation" },
-  { label: "Finance", email: "finance@procurely.com", desc: "Budget control & 3-way match" },
-  { label: "Executive", email: "executive@procurely.com", desc: "Board-level approvals & audit" },
+  { label: "Procurement", email: "procurement@kelvora.com", desc: "RFQ issuing & PO creation" },
+  { label: "Finance", email: "finance@kelvora.com", desc: "Budget control & 3-way match" },
+  { label: "Executive", email: "executive@kelvora.com", desc: "Board-level approvals & audit" },
 ];
 
 function AuthPage() {
@@ -153,7 +153,7 @@ function AuthPage() {
 
   function applyPreset(presetEmail: string) {
     setEmail(presetEmail);
-    setPassword("Procurely@2026!");
+    setPassword("Kelvora@2026!");
     setMode("signin");
     setShowDemoMenu(false);
     toast.success(`Loaded credentials for ${presetEmail}`);
@@ -236,7 +236,7 @@ function AuthPage() {
           <Link to="/" className="inline-flex items-center">
             <img
               src="/logo-dark.png"
-              alt="Procurely Logo"
+              alt="Kelvora Logo"
               className="h-8 w-auto object-contain rounded-lg bg-white p-1.5 shadow-sm"
             />
           </Link>
@@ -263,7 +263,7 @@ function AuthPage() {
           <div className="w-full max-w-[380px] overflow-hidden rounded-2xl border border-white/15 bg-white p-3 shadow-2xl shadow-black/30 transition-transform duration-300 hover:scale-[1.01]">
             <img
               src="/auth-illustration.jpg"
-              alt="Procurely Flow"
+              alt="Kelvora"
               className="h-auto w-full rounded-xl object-contain"
             />
           </div>
@@ -278,7 +278,7 @@ function AuthPage() {
             <Link to="/">
               <img
                 src="/logo-dark.png"
-                alt="Procurely Logo"
+                alt="Kelvora Logo"
                 className="h-8 w-auto object-contain rounded-md bg-[#0B1457] p-1.5"
               />
             </Link>
@@ -291,7 +291,7 @@ function AuthPage() {
           <div className="space-y-1.5">
             <h1 className="text-2xl font-bold tracking-tight text-[#0B1457] sm:text-3xl">
               {mode === "signin"
-                ? "Sign in to Procurely"
+                ? "Sign in to Kelvora"
                 : mode === "signup"
                   ? "Create your workspace"
                   : "Reset your password"}

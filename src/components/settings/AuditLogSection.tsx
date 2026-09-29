@@ -4,7 +4,7 @@ import { Lock, ShieldCheck, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { money, dateTime } from "@/lib/format";
-import { EmptyState } from "@/components/procurely/bits";
+import { EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { verifyAuditLedgerFn } from "@/lib/procurement.functions";
 

@@ -27,9 +27,9 @@ import { useMe, can, type AppRole } from "@/lib/useMe";
 import { bootstrapOrg, myPendingInvite, acceptInviteFn } from "@/lib/procurement.functions";
 import { myOrgAccessFn, amIPlatformAdmin } from "@/lib/platform.functions";
 import { ROLE_LABELS } from "@/lib/format";
-import { NotificationBell } from "@/components/procurely/notifications";
-import { UserAvatar } from "@/components/procurely/UserAvatar";
-import { ProfileEditDialog } from "@/components/procurely/ProfileEditDialog";
+import { NotificationBell } from "@/components/kelvora/notifications";
+import { UserAvatar } from "@/components/kelvora/UserAvatar";
+import { ProfileEditDialog } from "@/components/kelvora/ProfileEditDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -208,7 +208,7 @@ function AppLayout() {
           <h1 className="page-title mt-3 text-3xl">Account suspended</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Access to {access.data.orgName ?? "this workspace"} is paused. All of your data is
-            safely retained and returns the moment the account is reactivated — contact Procurely to
+            safely retained and returns the moment the account is reactivated — contact Kelvora to
             sort it out.
           </p>
           <Button onClick={signOut} variant="outline" className="mt-5">
@@ -260,12 +260,12 @@ function AppLayout() {
               <div className="flex flex-col items-center gap-2.5">
                 <Link
                   to="/dashboard"
-                  title="Procurely Dashboard"
+                  title="Kelvora Dashboard"
                   className="flex items-center justify-center rounded-lg focus:outline-hidden focus:ring-2 focus:ring-[#0001FF]"
                 >
                   <img
                     src="/apple-touch-icon.png"
-                    alt="Procurely"
+                    alt="Kelvora"
                     className="h-8 w-8 rounded-lg object-contain shadow-xs ring-1 ring-white/10 hover:ring-white/30 transition-all"
                   />
                 </Link>
@@ -290,7 +290,7 @@ function AppLayout() {
                 >
                   <img
                     src="/logo-dark.png"
-                    alt="Procurely"
+                    alt="Kelvora"
                     className="h-8 w-auto object-contain rounded-lg bg-white p-1.5 shadow-xs transition-opacity hover:opacity-95"
                   />
                 </Link>

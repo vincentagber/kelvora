@@ -25,10 +25,10 @@ import {
   simulateWhatsAppApprovalFn,
 } from "@/lib/procurement.functions";
 import { money, shortDate, ROLE_LABELS } from "@/lib/format";
-import { PageHeader, EmptyState, StatusPill } from "@/components/procurely/bits";
+import { PageHeader, EmptyState, StatusPill } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AttachmentThumbs } from "@/components/procurely/AttachmentThumbs";
+import { AttachmentThumbs } from "@/components/kelvora/AttachmentThumbs";
 import {
   Dialog,
   DialogContent,
@@ -48,13 +48,13 @@ import {
 export const Route = createFileRoute("/_authenticated/approvals")({
   head: () => ({
     meta: [
-      { title: "Approvals — Procurely Flow" },
+      { title: "Approvals — Kelvora" },
       {
         name: "description",
         content:
           "Approve or reject the requests routed to your role, with a permanent decision log.",
       },
-      { property: "og:title", content: "Approvals — Procurely Flow" },
+      { property: "og:title", content: "Approvals — Kelvora" },
       { property: "og:description", content: "Requests waiting on your decision." },
     ],
   }),
@@ -535,7 +535,7 @@ function Approvals() {
               WhatsApp &amp; Mobile Clearance Channel
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Procurely Flow meets site directors and executives on WhatsApp. Send a tokenized,
+              Kelvora meets site directors and executives on WhatsApp. Send a tokenized,
               single-use approval prompt that lets them clear requests with one tap without password
               friction.
             </DialogDescription>

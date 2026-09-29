@@ -1,5 +1,5 @@
 /**
- * Procurely Flow — Automated Quotation Comparison & Side-by-Side Bid Analysis Engine
+ * Kelvora — Automated Quotation Comparison & Side-by-Side Bid Analysis Engine
  *
  * Implements signature multi-criteria bid evaluation (§FR-3, §FR-4):
  * - Lowest price per line item identification

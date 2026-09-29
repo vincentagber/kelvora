@@ -27,13 +27,13 @@ import {
 export const Route = createFileRoute("/quote/$token")({
   head: () => ({
     meta: [
-      { title: "Submit your quote — Procurely Flow" },
+      { title: "Submit your quote — Kelvora" },
       {
         name: "description",
         content:
           "Enter your prices for this request for quotation. No account or app download needed.",
       },
-      { property: "og:title", content: "Submit your quote — Procurely Flow" },
+      { property: "og:title", content: "Submit your quote — Kelvora" },
       { property: "og:description", content: "Quote a construction materials request in minutes." },
       { name: "robots", content: "noindex" },
     ],
@@ -549,7 +549,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
       <div className="rounded-xl border border-border bg-card p-5 sm:p-7">{children}</div>
-      <p className="mt-4 text-center text-xs text-muted-foreground">Powered by Procurely Flow</p>
+      <p className="mt-4 text-center text-xs text-muted-foreground">Powered by Kelvora</p>
     </main>
   );
 }

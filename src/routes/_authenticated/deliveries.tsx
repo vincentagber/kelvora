@@ -43,7 +43,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { AttachmentThumbs } from "@/components/procurely/AttachmentThumbs";
+import { AttachmentThumbs } from "@/components/kelvora/AttachmentThumbs";
 import {
   saveDeliveryToOfflineQueue,
   getQueuedDeliveries,
@@ -56,13 +56,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/deliveries")({
   head: () => ({
     meta: [
-      { title: "Delivery & Inspection — Procurely Flow" },
+      { title: "Delivery & Inspection — Kelvora" },
       {
         name: "description",
         content:
           "Record goods received on site, inspect items, attach delivery note photos, and track partial/rejected deliveries.",
       },
-      { property: "og:title", content: "Delivery & Inspection — Procurely Flow" },
+      { property: "og:title", content: "Delivery & Inspection — Kelvora" },
       { property: "og:description", content: "Site delivery and quality inspection records." },
     ],
   }),

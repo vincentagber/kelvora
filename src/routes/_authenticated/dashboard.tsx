@@ -38,7 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useMe, can } from "@/lib/useMe";
 import { money, shortDate, dateTime, STATUS_LABELS, ROLE_LABELS } from "@/lib/format";
-import { StatusPill, EmptyState } from "@/components/procurely/bits";
+import { StatusPill, EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getDashboardMetricsFn } from "@/lib/procurement.functions";
@@ -52,7 +52,7 @@ import {
 import {
   ForensicGovernanceEmblemIcon,
   GovernanceVerifiedBadgeIcon,
-} from "@/components/procurely/ProductDesignerIcons";
+} from "@/components/kelvora/ProductDesignerIcons";
 import {
   MdPolicy,
   MdSecurity,
@@ -83,13 +83,13 @@ import {
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Procurely Flow" },
+      { title: "Dashboard — Kelvora" },
       {
         name: "description",
         content:
           "Enterprise procurement overview: spend velocity, approval pipeline, and transaction logs.",
       },
-      { property: "og:title", content: "Dashboard — Procurely Flow" },
+      { property: "og:title", content: "Dashboard — Kelvora" },
       { property: "og:description", content: "Executive procurement dashboard and analytics." },
     ],
   }),

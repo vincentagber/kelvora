@@ -27,13 +27,13 @@ import { ProfileSection } from "@/components/settings/ProfileSection";
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Organization Settings — Procurely Flow" },
+      { title: "Organization Settings — Kelvora" },
       {
         name: "description",
         content:
           "Edit approval thresholds, manage teammate roles and read the permanent approval audit log.",
       },
-      { property: "og:title", content: "Settings — Procurely Flow" },
+      { property: "og:title", content: "Settings — Kelvora" },
       { property: "og:description", content: "Configure approval routing for your organization." },
     ],
   }),

@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe, can } from "@/lib/useMe";
 import { createProjectFn, projectBudgetStatusFn } from "@/lib/procurement.functions";
 import { money, shortDate } from "@/lib/format";
-import { PageHeader, EmptyState } from "@/components/procurely/bits";
+import { PageHeader, EmptyState } from "@/components/kelvora/bits";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,13 +44,13 @@ import {
 export const Route = createFileRoute("/_authenticated/projects")({
   head: () => ({
     meta: [
-      { title: "Projects / Cost Centers — Procurely Flow" },
+      { title: "Projects / Cost Centers — Kelvora" },
       {
         name: "description",
         content:
           "Create and track the projects or cost centers every requisition, quote and purchase order belongs to.",
       },
-      { property: "og:title", content: "Projects / Cost Centers — Procurely Flow" },
+      { property: "og:title", content: "Projects / Cost Centers — Kelvora" },
       {
         property: "og:description",
         content: "Projects and cost centers with optional budgets for procurement tracking.",

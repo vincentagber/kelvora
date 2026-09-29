@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/health")({
         return Response.json(
           {
             status: "ok",
-            service: "procurely-flow",
+            service: "kelvora",
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             node: process.version,

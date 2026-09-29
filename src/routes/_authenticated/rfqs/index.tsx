@@ -3,18 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
 import { shortDate } from "@/lib/format";
-import { PageHeader, StatusPill, EmptyState } from "@/components/procurely/bits";
+import { PageHeader, StatusPill, EmptyState } from "@/components/kelvora/bits";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/rfqs/")({
   head: () => ({
     meta: [
-      { title: "RFQs & quotes — Procurely Flow" },
+      { title: "RFQs & quotes — Kelvora" },
       {
         name: "description",
         content: "Track open requests for quotation, how many suppliers replied, and award status.",
       },
-      { property: "og:title", content: "RFQs & quotes — Procurely Flow" },
+      { property: "og:title", content: "RFQs & quotes — Kelvora" },
       { property: "og:description", content: "Competitive supplier quoting, sealed by default." },
     ],
   }),

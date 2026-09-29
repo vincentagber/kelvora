@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { platformOrgDetailFn, setOrgPlanFn } from "@/lib/platform.functions";
-import { BillingSection } from "@/components/procurely/billing";
+import { BillingSection } from "@/components/kelvora/billing";
 import { BILLING_STATUS_LABELS, SUBSCRIPTION_PLANS, type SubscriptionPlan } from "@/lib/billing";
 import { money, shortDate, dateTime, ROLE_LABELS, STATUS_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -20,16 +20,16 @@ import type { Currency } from "@/lib/format";
 export const Route = createFileRoute("/platform-admin/$orgId")({
   head: () => ({
     meta: [
-      { title: "Organization review — Platform Admin | Procurely" },
+      { title: "Organization review — Platform Admin | Kelvora" },
       {
         name: "description",
         content:
           "Read-only platform review of a customer organization: members, recent requisitions, RFQs and audit trail.",
       },
-      { property: "og:title", content: "Organization review — Platform Admin | Procurely" },
+      { property: "og:title", content: "Organization review — Platform Admin | Kelvora" },
       {
         property: "og:description",
-        content: "Platform staff review of a single customer organization on Procurely.",
+        content: "Platform staff review of a single customer organization on Kelvora.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],

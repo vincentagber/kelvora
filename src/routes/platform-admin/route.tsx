@@ -46,7 +46,7 @@ function PlatformShell() {
           <ShieldAlert className="mx-auto h-8 w-8 text-signal" aria-hidden />
           <h1 className="page-title mt-3 text-3xl">Restricted area</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Platform administration is limited to Procurely staff accounts.
+            Platform administration is limited to Kelvora staff accounts.
           </p>
           <div className="mt-5">
             <Button asChild variant="outline">
@@ -69,7 +69,7 @@ function PlatformShell() {
             <Building2 className="h-5 w-5 text-signal" aria-hidden />
             <div>
               <p className="font-display text-xl uppercase leading-none tracking-wider text-background">
-                Procurely Platform Admin
+                Kelvora Platform Admin
               </p>
               <p className="mt-1 text-[11px] uppercase tracking-widest text-signal">
                 All organizations · read-only visibility

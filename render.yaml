@@ -14,7 +14,7 @@
 
 services:
   - type: web
-    name: procurely-flow
+    name: kelvora
     runtime: node
     plan: starter
     region: frankfurt  # Closest to West Africa / Nigeria
@@ -34,7 +34,7 @@ services:
 
       # ── Application ──
       - key: APP_BASE_URL
-        sync: false  # e.g. https://procurely-flow.onrender.com
+        sync: false  # e.g. https://kelvora.onrender.com
 
       # ── Supabase Client (build-time & SSR) ──
       - key: SUPABASE_URL
@@ -66,7 +66,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        value: "Procurely Flow <notifications@procurely.app>"
+        value: "Kelvora <notifications@kelvora.app>"
 
       # ── WhatsApp / SMS ──
       - key: WHATSAPP_DRIVER

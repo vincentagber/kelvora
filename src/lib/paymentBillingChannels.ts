@@ -62,7 +62,7 @@ export function generateSubscriptionBill(params: {
         : {
             bankName: "Providus Bank / Wema Bank",
             accountNumber: `99${Math.floor(10000000 + Math.random() * 90000000)}`,
-            accountName: `Procurely Flow - ${params.orgName.slice(0, 20)}`,
+            accountName: `Kelvora - ${params.orgName.slice(0, 20)}`,
             assignedAt: new Date().toISOString(),
             provider: "SIMULATED" as const,
           }
@@ -112,7 +112,7 @@ export function assertPciDssCardDataAbsence(payload: Record<string, unknown>): v
   for (const key of forbiddenKeys) {
     if (key in payload) {
       throw new Error(
-        `PCI-DSS Security Violation: Raw card credentials [${key}] must never be handled or stored by Procurely Flow. Use tokenized gateway references instead.`,
+        `PCI-DSS Security Violation: Raw card credentials [${key}] must never be handled or stored by Kelvora. Use tokenized gateway references instead.`,
       );
     }
   }
