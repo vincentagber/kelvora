@@ -2,6 +2,7 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
+import { getRealtimeTransport } from "./realtime-transport";
 import type { Database } from "./types";
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -82,6 +83,9 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
         storage: undefined,
         persistSession: false,
         autoRefreshToken: false,
+      },
+      realtime: {
+        transport: getRealtimeTransport(),
       },
     });
 
