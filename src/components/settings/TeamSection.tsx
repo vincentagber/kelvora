@@ -298,10 +298,10 @@ function ManageSubUsersCard() {
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
-    temporaryPassword?: string;
+    temporaryPassword?: string | undefined;
     fullName: string;
     roles: AppRole[];
-    department?: string;
+    department?: string | undefined;
   } | null>(null);
 
   const invites = useQuery({
