@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Camera, Paperclip, X, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Camera, Paperclip, X, AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/useMe";
@@ -54,10 +54,18 @@ type Line = {
   attachments: Attachment[];
 };
 
+const STANDARD_UNITS = [
+  "Unit",
+  "Pcs",
+  "Tons",
+  "Volume",
+  "Rubbers",
+] as const;
+
 const EMPTY_LINE: Line = {
   description: "",
   quantity: "1",
-  unit: "unit",
+  unit: "Unit",
   unitPrice: "",
   attachments: [],
 };
@@ -75,6 +83,7 @@ function NewRequisition() {
   const [unbudgeted, setUnbudgeted] = useState(false);
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([{ ...EMPTY_LINE }]);
+  const [customUnitLines, setCustomUnitLines] = useState<Record<number, boolean>>({});
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [chain, setChain] = useState<{
     ruleLabel: string;
@@ -392,12 +401,65 @@ function NewRequisition() {
                     </div>
                     <div>
                       <Label className="text-[11px] text-slate-500 sm:hidden">Unit</Label>
-                      <Input
-                        className="h-9 text-xs rounded-lg border-slate-200 bg-white shadow-2xs"
-                        placeholder="Unit"
-                        value={line.unit}
-                        onChange={(e) => updateLine(index, { unit: e.target.value })}
-                      />
+                      {customUnitLines[index] ? (
+                        <div className="relative">
+                          <Input
+                            className="h-9 pr-7 text-xs rounded-lg border-slate-200 bg-white shadow-2xs"
+                            placeholder="Custom unit"
+                            value={line.unit}
+                            onChange={(e) => updateLine(index, { unit: e.target.value })}
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            title="Back to unit dropdown"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                            onClick={() => {
+                              setCustomUnitLines((prev) => ({ ...prev, [index]: false }));
+                              updateLine(index, { unit: "Unit" });
+                            }}
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Select
+                          value={
+                            STANDARD_UNITS.includes(line.unit as (typeof STANDARD_UNITS)[number])
+                              ? line.unit
+                              : line.unit.toLowerCase() === "unit"
+                                ? "Unit"
+                                : line.unit
+                                  ? "__custom__"
+                                  : "Unit"
+                          }
+                          onValueChange={(val) => {
+                            if (val === "__custom__") {
+                              setCustomUnitLines((prev) => ({ ...prev, [index]: true }));
+                              updateLine(index, { unit: "" });
+                            } else {
+                              updateLine(index, { unit: val });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200 bg-white shadow-2xs">
+                            <SelectValue placeholder="Unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STANDARD_UNITS.map((u) => (
+                              <SelectItem key={u} value={u} className="text-xs">
+                                {u}
+                              </SelectItem>
+                            ))}
+                            <SelectItem
+                              value="__custom__"
+                              className="text-xs text-muted-foreground italic border-t border-slate-100 mt-1 pt-1"
+                            >
+                              Other (Custom)...
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                     <div>
                       <Label className="text-[11px] text-slate-500 sm:hidden">Price</Label>
