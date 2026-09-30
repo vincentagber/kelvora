@@ -37,6 +37,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { WhatsAppClearanceModal } from "@/components/kelvora/WhatsAppClearanceModal";
 import {
   motion,
   AnimatePresence,
@@ -519,7 +520,7 @@ function Approvals() {
       </Dialog>
 
       {/* WhatsApp 1-Click Clearance Dispatch Dialog */}
-      <Dialog
+      <WhatsAppClearanceModal
         open={!!whatsappModalStep}
         onOpenChange={(open) => {
           if (!open) {
@@ -527,97 +528,11 @@ function Approvals() {
             setGeneratedLinks(null);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-emerald-900 font-bold text-base">
-              <FaWhatsapp className="h-5 w-5 text-[#25D366] shrink-0" />
-              WhatsApp &amp; Mobile Clearance Channel
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Kelvora meets site directors and executives on WhatsApp. Send a tokenized,
-              single-use approval prompt that lets them clear requests with one tap without password
-              friction.
-            </DialogDescription>
-          </DialogHeader>
-
-          {isGeneratingLinks ? (
-            <div className="py-8 flex flex-col items-center justify-center gap-2">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-              <p className="text-xs text-slate-500 font-medium">
-                Generating single-use cryptographic tokens…
-              </p>
-            </div>
-          ) : generatedLinks ? (
-            <div className="space-y-4 py-2 text-xs">
-              <div className="flex items-center justify-between bg-emerald-50/80 border border-emerald-200 p-2.5 rounded-lg">
-                <span className="font-semibold text-emerald-950 flex items-center gap-1.5">
-                  <Smartphone className="h-4 w-4 text-emerald-700" />
-                  Target Approver Phone:
-                </span>
-                <span className="font-mono font-bold text-emerald-800">
-                  {generatedLinks.approverPhone || "+234 (Registered Approver)"}
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Formatted WhatsApp Message Template
-                </label>
-                <div className="p-3 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto border border-slate-800 selection:bg-emerald-600">
-                  {generatedLinks.whatsappMessage}
-                </div>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-2 pt-1">
-                <Button
-                  type="button"
-                  className="h-10 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-xs cursor-pointer shadow-xs gap-1.5"
-                  onClick={() => {
-                    window.open(generatedLinks.whatsappDirectUrl, "_blank", "noopener,noreferrer");
-                  }}
-                >
-                  <FaWhatsapp className="h-4 w-4 shrink-0" />
-                  Launch WhatsApp
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs cursor-pointer"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(generatedLinks.whatsappMessage);
-                      toast.success("WhatsApp approval message copied to clipboard!");
-                    } catch {
-                      window.prompt("Copy WhatsApp message", generatedLinks.whatsappMessage);
-                    }
-                  }}
-                >
-                  <Copy className="mr-1.5 h-3.5 w-3.5" />
-                  Copy Message
-                </Button>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400">
-                  Live simulation of WhatsApp carrier webhook:
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs font-semibold text-[#0B1457] hover:bg-blue-50 cursor-pointer"
-                  disabled={simulateWhatsApp.isPending}
-                  onClick={() => simulateWhatsApp.mutate(generatedLinks.stepId)}
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
-                  {simulateWhatsApp.isPending ? "Simulating…" : "Simulate WhatsApp Approval"}
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+        isGeneratingLinks={isGeneratingLinks}
+        generatedLinks={generatedLinks}
+        onSimulateApproval={(stepId) => simulateWhatsApp.mutate(stepId)}
+        isSimulatingApproval={simulateWhatsApp.isPending}
+      />
     </motion.div>
   );
 }
