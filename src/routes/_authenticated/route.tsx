@@ -227,7 +227,7 @@ function AppLayout() {
       <header className="flex items-center justify-between border-b border-[#162070] bg-[#0B1457] px-4 py-3 md:hidden">
         <div className="flex items-center">
           <img
-            src="/logo-kelvora-white.svg"
+            src="/logo-kelvora-white.png"
             alt="Kelvora"
             className="h-7 w-auto object-contain"
           />
@@ -289,7 +289,7 @@ function AppLayout() {
                   className="flex items-center rounded-lg focus:outline-hidden focus:ring-2 focus:ring-[#0001FF]"
                 >
                   <img
-                    src="/logo-kelvora-white.svg"
+                    src="/logo-kelvora-white.png"
                     alt="Kelvora"
                     className="h-8 w-auto object-contain transition-opacity hover:opacity-95"
                   />
