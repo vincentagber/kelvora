@@ -74,16 +74,16 @@ export function WhatsAppClearanceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
         {/* Header with WhatsApp branding */}
-        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-50 border-b border-slate-200/80 px-5 py-4 sm:px-6">
+        <div className="shrink-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-50 border-b border-slate-200/80 px-4 py-3.5 sm:px-6 sm:py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-sm shadow-emerald-500/20">
-              <FaWhatsapp className="h-6 w-6" />
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-sm shadow-emerald-500/20">
+              <FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <DialogTitle className="text-base font-bold text-slate-900 tracking-tight">
+                <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
                   WhatsApp Clearance Channel
                 </DialogTitle>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
@@ -91,7 +91,7 @@ export function WhatsAppClearanceModal({
                   1-Click Secure
                 </span>
               </div>
-              <DialogDescription className="text-xs text-slate-500 mt-0.5">
+              <DialogDescription className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
                 Dispatch an instant, tokenized mobile approval prompt without password friction.
               </DialogDescription>
             </div>
@@ -99,7 +99,7 @@ export function WhatsAppClearanceModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5">
           {isGeneratingLinks ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-600 border-t-transparent" />
@@ -110,69 +110,76 @@ export function WhatsAppClearanceModal({
           ) : generatedLinks ? (
             <>
               {/* Approver Target Banner */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3">
-                <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3.5 py-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
                     <Smartphone className="h-4 w-4" />
                   </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block truncate">
                       Target Approver Mobile
                     </span>
-                    <span className="text-xs font-bold text-slate-800 font-mono">
+                    <span className="text-xs font-bold text-slate-800 font-mono truncate block">
                       {generatedLinks.approverPhone || "+234 (Registered Approver)"}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 border border-emerald-200/60">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Delivery Ready
-                  </span>
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Delivery Ready
+                </span>
+              </div>
 
-                  {/* Toggle between Chat Preview and Raw Text */}
-                  <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 text-[11px] font-medium">
-                    <button
-                      type="button"
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                        viewMode === "preview"
-                          ? "bg-slate-900 text-white shadow-2xs font-semibold"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                      onClick={() => setViewMode("preview")}
-                    >
-                      <Eye className="h-3 w-3" />
-                      Preview
-                    </button>
-                    <button
-                      type="button"
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                        viewMode === "raw"
-                          ? "bg-slate-900 text-white shadow-2xs font-semibold"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                      onClick={() => setViewMode("raw")}
-                    >
-                      <Code2 className="h-3 w-3" />
-                      Raw Text
-                    </button>
-                  </div>
+              {/* View Switcher Header Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-bold text-slate-700 truncate">
+                    {viewMode === "preview" ? "WhatsApp Message Preview" : "Raw Template Payload"}
+                  </span>
+                  <span className="hidden sm:inline-block text-[10px] text-slate-400">
+                    {viewMode === "preview" ? "• Recipient chat view" : "• Direct API text"}
+                  </span>
+                </div>
+
+                <div className="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                      viewMode === "preview"
+                        ? "bg-white text-slate-900 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    onClick={() => setViewMode("preview")}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                      viewMode === "raw"
+                        ? "bg-white text-slate-900 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    onClick={() => setViewMode("raw")}
+                  >
+                    <Code2 className="h-3.5 w-3.5" />
+                    Raw Text
+                  </button>
                 </div>
               </div>
 
               {/* View Content */}
               {viewMode === "preview" ? (
                 /* Authentic WhatsApp Chat Preview */
-                <div className="rounded-2xl border border-slate-200 bg-[#ECE5DD] p-3.5 sm:p-4 shadow-inner">
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        WhatsApp Message Preview
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-slate-500">End-to-end encrypted</span>
+                <div className="rounded-2xl border border-slate-200 bg-[#ECE5DD] p-3 sm:p-4 shadow-inner">
+                  <div className="flex items-center justify-between mb-2 px-1 text-[10px] text-slate-500">
+                    <span className="flex items-center gap-1 font-semibold text-emerald-800">
+                      <ShieldCheck className="h-3 w-3" />
+                      Encrypted WhatsApp Dispatch
+                    </span>
+                    <span>Single-use token</span>
                   </div>
 
                   {/* WhatsApp Message Bubble */}
