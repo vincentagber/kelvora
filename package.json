@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "prebuild": "node scripts/ensure-rolldown.cjs",
-    "build": "node scripts/ensure-rolldown.cjs && vite build",
-    "buildbun": "node scripts/ensure-rolldown.cjs && vite build",
-    "start": "node .output/server/index.mjs",
+    "build": "node scripts/ensure-rolldown.cjs 2>/dev/null || true; vite build",
+    "buildbun": "vite build",
+    "start": "node .output/server/index.mjs 2>/dev/null || bun .output/server/index.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
