@@ -255,15 +255,22 @@ export async function getApprovalTokenDetails(rawToken: string) {
 
   if (!reqId) return { status: "INVALID" as const, error: "Requisition not found." };
 
-  const { data: req } = await supabaseAdmin
+  const { data: req, error: reqError } = await supabaseAdmin
     .from("requisitions")
     .select(
-      "id, reference, title, total_amount, currency, status, is_unbudgeted, needed_by, created_at, project_id, requester_id, projects(id, name, location, budget_amount), profiles:requester_id(id, full_name, email, department)",
+      "id, reference, title, total_amount, currency, status, is_unbudgeted, needed_by, created_at, project_id, requester_id, projects(id, name, location, budget_amount)",
     )
     .eq("id", reqId)
     .maybeSingle();
 
-  if (!req) return { status: "INVALID" as const, error: "Requisition details not found." };
+  if (reqError || !req) return { status: "INVALID" as const, error: "Requisition details not found." };
+
+  // Fetch requester profile explicitly by ID to avoid PostgREST schema relationship errors
+  const { data: requesterProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, email, department")
+    .eq("id", req.requester_id)
+    .maybeSingle();
 
   const { data: items } = await supabaseAdmin
     .from("requisition_items")
@@ -276,11 +283,7 @@ export async function getApprovalTokenDetails(rawToken: string) {
     .eq("id", stepId)
     .maybeSingle();
 
-  const requester = (req as any).profiles as {
-    full_name?: string;
-    email?: string;
-    department?: string;
-  } | null;
+  const requester = requesterProfile;
   const project = (req as any).projects as {
     name?: string;
     location?: string;
@@ -379,8 +382,30 @@ export async function decideApprovalByToken(
     if (usersWithRole && usersWithRole.length > 0) {
       actorUserId = usersWithRole[0]!.user_id;
     } else {
-      actorUserId = "whatsapp_email_system";
+      // Find an admin or any member in the organization to avoid non-UUID syntax errors
+      const { data: adminRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .eq("org_id", step.org_id)
+        .eq("role", "admin")
+        .limit(1)
+        .maybeSingle();
+      if (adminRole?.user_id) {
+        actorUserId = adminRole.user_id;
+      } else {
+        const { data: anyOrgUser } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("org_id", step.org_id)
+          .limit(1)
+          .maybeSingle();
+        actorUserId = anyOrgUser?.id || null;
+      }
     }
+  }
+
+  if (!actorUserId) {
+    throw new Error("No active user profile in this organization could be resolved to record the decision.");
   }
 
   // Mark token as consumed
@@ -418,12 +443,18 @@ export async function generateStepApprovalLinks(stepId: string, originUrl?: stri
   const { data: req } = await supabaseAdmin
     .from("requisitions")
     .select(
-      "id, reference, title, total_amount, currency, is_unbudgeted, project_id, projects(name), profiles:requester_id(full_name)",
+      "id, reference, title, total_amount, currency, is_unbudgeted, project_id, requester_id, projects(name)",
     )
     .eq("id", step.requisition_id)
     .maybeSingle();
 
   if (!req) throw new Error("Requisition not found.");
+
+  const { data: requesterProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", req.requester_id)
+    .maybeSingle();
 
   // Get recipient phone / email from users with the required role
   const { data: users } = await supabaseAdmin.rpc("org_users_with_roles", {
@@ -465,7 +496,7 @@ export async function generateStepApprovalLinks(stepId: string, originUrl?: stri
 
   const reqObj = req as any;
   const projectName = reqObj.projects?.name || "General Project Site";
-  const requesterName = reqObj.profiles?.full_name || "Project Engineer";
+  const requesterName = requesterProfile?.full_name || reqObj.profiles?.full_name || "Project Engineer";
   const amountFormatted = `₦${Number(req.total_amount).toLocaleString("en-NG")}`;
 
   const whatsappMessage = [
@@ -821,6 +852,39 @@ export async function submitRequisition(userId: string, requisitionId: string) {
     title: `Approval needed: ${req!.title}`,
     body: `${actor.fullName} submitted a ${money(total, req!.currency as "NGN" | "USD")} request.`,
   });
+
+  // Auto-dispatch 1-click approval notification to approvers for the first clearance step
+  const firstStep = chain.steps[0];
+  if (firstStep) {
+    try {
+      const { data: dbStep } = await supabaseAdmin
+        .from("approval_steps")
+        .select("id")
+        .eq("requisition_id", requisitionId)
+        .eq("step_order", firstStep.order)
+        .maybeSingle();
+
+      if (dbStep) {
+        const links = await generateStepApprovalLinks(dbStep.id);
+        if (links.approverEmail) {
+          const { dispatchApprovalNotification } = await import("./notifications");
+          await dispatchApprovalNotification({
+            recipientEmail: links.approverEmail,
+            recipientName: links.approverEmail.split("@")[0] || "Approver",
+            recipientPhone: links.approverPhone,
+            approverRole: firstStep.role,
+            requisitionTitle: req!.title,
+            requisitionNumber: req!.reference,
+            totalAmountNgn: total,
+            requesterName: actor.fullName,
+            actionToken: links.approveToken,
+          });
+        }
+      }
+    } catch (dispatchErr) {
+      console.warn("[SubmitRequisition] Auto-dispatch approval notification warning:", dispatchErr);
+    }
+  }
 
   return { total, chain };
 }
@@ -1803,11 +1867,13 @@ export async function resendRfqInvitation(
 
 /* ---------- Foundations: team invitations & projects ---------- */
 
-export async function inviteTeammate(actorUserId: string, input: { email: string; roles: Role[] }) {
+export async function inviteTeammate(actorUserId: string, input: { email: string; roles: Role[]; baseUrl?: string | undefined }) {
   const actor = await loadActor(actorUserId);
   requireRole(actor, ["admin"]);
   const email = input.email.trim().toLowerCase();
   const roles = input.roles.length ? input.roles : (["requester"] as Role[]);
+  const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
+  const inviteUrl = `${baseUrl}/auth`;
 
   const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
@@ -1822,7 +1888,7 @@ export async function inviteTeammate(actorUserId: string, input: { email: string
   // Already a teammate: just set their roles.
   if (existingProfile?.org_id === actor.orgId) {
     await setMemberRoles(actorUserId, { targetUserId: existingProfile.id, roles });
-    return { ok: true, mode: "roles_updated" as const };
+    return { ok: true, mode: "roles_updated" as const, inviteUrl };
   }
 
   await supabaseAdmin
@@ -1841,13 +1907,210 @@ export async function inviteTeammate(actorUserId: string, input: { email: string
   });
   if (error) throw new Error(error.message);
 
+  // Dispatch invitation email via notification engine
+  try {
+    const { dispatchTeamInvitationNotification } = await import("./notifications");
+    const { data: orgData } = await supabaseAdmin
+      .from("organizations")
+      .select("name")
+      .eq("id", actor.orgId)
+      .maybeSingle();
+
+    await dispatchTeamInvitationNotification({
+      recipientEmail: email,
+      orgName: orgData?.name || "Kelvora Workspace",
+      inviterName: actor.fullName,
+      roles,
+      inviteUrl,
+    });
+  } catch (emailErr) {
+    console.warn("[inviteTeammate] Outbound invitation email warning:", emailErr);
+  }
+
   await logAudit({
     orgId: actor.orgId,
     actor,
     action: "teammate_invited",
     detail: `${email}: ${roles.join(", ")}`,
   });
-  return { ok: true, mode: "invited" as const };
+  return { ok: true, mode: "invited" as const, inviteUrl };
+}
+
+/**
+ * Creates and provisions a sub-user directly with pre-assigned roles and credentials.
+ * Bypasses email onboarding hurdles for immediate organizational testing and operational workflows.
+ */
+export async function createSubUser(
+  actorUserId: string,
+  input: {
+    email: string;
+    password?: string | undefined;
+    fullName: string;
+    department?: string | undefined;
+    roles: Role[];
+    sendEmail?: boolean | undefined;
+    baseUrl?: string | undefined;
+  },
+) {
+  const actor = await loadActor(actorUserId);
+  requireRole(actor, ["admin"]);
+  const email = input.email.trim().toLowerCase();
+  const roles = input.roles && input.roles.length ? input.roles : (["requester"] as Role[]);
+  const fullName = input.fullName.trim();
+  const temporaryPassword = input.password?.trim() || `${randomBytes(6).toString("hex")}!Aa1`;
+  const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
+
+  // 1. Ensure user is not already assigned to a different organization
+  const { data: existingProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("id, org_id")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (existingProfile?.org_id && existingProfile.org_id !== actor.orgId) {
+    throw new Error("That email is already assigned to a different organization.");
+  }
+
+  // 2. Create user in Supabase Auth via admin API
+  let targetUserId = existingProfile?.id;
+  if (!targetUserId) {
+    const { data: authCreated, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        organization_name: actor.fullName,
+      },
+    });
+
+    if (createAuthError) {
+      if (createAuthError.message.includes("already registered") || (createAuthError as any).status === 422) {
+        const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+        const matched = (userList?.users ?? []).find((u) => u.email?.toLowerCase() === email);
+        if (matched) {
+          targetUserId = matched.id;
+        } else {
+          throw new Error(`Authentication user setup failed: ${createAuthError.message}`);
+        }
+      } else {
+        throw new Error(`Unable to create sub-user auth account: ${createAuthError.message}`);
+      }
+    } else if (authCreated?.user) {
+      targetUserId = authCreated.user.id;
+    }
+  }
+
+  if (!targetUserId) {
+    throw new Error("Could not resolve created sub-user account ID.");
+  }
+
+  // 3. Upsert profile with org_id
+  const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
+    id: targetUserId,
+    org_id: actor.orgId,
+    full_name: fullName,
+    email,
+    department: input.department?.trim() || null,
+  });
+  if (profileError) throw new Error(`Profile sync failure: ${profileError.message}`);
+
+  // 4. Assign user roles
+  await setMemberRoles(actorUserId, { targetUserId, roles });
+
+  // 5. Clean up any pending invitation for this email in this org
+  await supabaseAdmin
+    .from("org_invitations")
+    .delete()
+    .eq("org_id", actor.orgId)
+    .ilike("email", email);
+
+  // 6. Dispatch transactional welcome/credentials email
+  let notificationResult: any = null;
+  if (input.sendEmail !== false) {
+    try {
+      const { dispatchTeamInvitationNotification } = await import("./notifications");
+      const { data: orgData } = await supabaseAdmin
+        .from("organizations")
+        .select("name")
+        .eq("id", actor.orgId)
+        .maybeSingle();
+
+      notificationResult = await dispatchTeamInvitationNotification({
+        recipientEmail: email,
+        recipientName: fullName,
+        orgName: orgData?.name || "Kelvora Workspace",
+        inviterName: actor.fullName,
+        roles,
+        inviteUrl: `${baseUrl}/auth`,
+        temporaryPassword,
+      });
+    } catch (emailErr) {
+      console.warn("[createSubUser] Outbound email notification warning:", emailErr);
+    }
+  }
+
+  // 7. Audit log
+  await logAudit({
+    orgId: actor.orgId,
+    actor,
+    action: "subuser_created",
+    detail: `${fullName} (${email}) added with roles: ${roles.join(", ")}`,
+  });
+
+  return {
+    ok: true,
+    userId: targetUserId,
+    email,
+    fullName,
+    roles,
+    temporaryPassword,
+    notificationResult,
+  };
+}
+
+/**
+ * Removes a sub-user from the organization and revokes all role permissions.
+ */
+export async function removeSubUser(actorUserId: string, targetUserId: string) {
+  const actor = await loadActor(actorUserId);
+  requireRole(actor, ["admin"]);
+
+  if (actor.userId === targetUserId) {
+    throw new Error("You cannot remove your own administrator account.");
+  }
+
+  const { data: target } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, email, org_id")
+    .eq("id", targetUserId)
+    .maybeSingle();
+
+  if (!target || target.org_id !== actor.orgId) {
+    throw new Error("That user does not belong to your organization.");
+  }
+
+  // Delete roles
+  await supabaseAdmin
+    .from("user_roles")
+    .delete()
+    .eq("user_id", targetUserId)
+    .eq("org_id", actor.orgId);
+
+  // Disassociate profile from org
+  await supabaseAdmin
+    .from("profiles")
+    .update({ org_id: null })
+    .eq("id", targetUserId);
+
+  await logAudit({
+    orgId: actor.orgId,
+    actor,
+    action: "subuser_removed",
+    detail: `Removed ${target.full_name || target.email} from organization`,
+  });
+
+  return { ok: true };
 }
 
 export async function cancelInvitation(actorUserId: string, invitationId: string) {

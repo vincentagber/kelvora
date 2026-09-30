@@ -62,7 +62,7 @@ services:
 
       # ── Email Notifications ──
       - key: EMAIL_DRIVER
-        value: console
+        value: supabase
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM

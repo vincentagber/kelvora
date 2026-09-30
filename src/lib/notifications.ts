@@ -2,7 +2,7 @@
  * Outbound Transactional Notification Engine (Email & WhatsApp)
  *
  * Implements multi-channel notification dispatchers with:
- * 1. Resend / Transactional HTTP Email Driver
+ * 1. Supabase / Resend / Transactional HTTP Email Driver
  * 2. Termii / WhatsApp Direct 1-Click Action Messaging
  * 3. Safe Development Console Mode Fallback
  */
@@ -13,6 +13,7 @@ export interface NotificationDispatchResult {
   messageId?: string;
   recipient: string;
   error?: string;
+  details?: Record<string, unknown>;
 }
 
 export interface ApprovalNotificationParams {
@@ -37,6 +38,24 @@ export interface PoNotificationParams {
   currency: string;
   actionToken: string;
   baseUrl?: string;
+}
+
+export interface TeamInvitationNotificationParams {
+  recipientEmail: string;
+  recipientName?: string;
+  orgName: string;
+  inviterName: string;
+  roles: string[];
+  inviteUrl: string;
+  temporaryPassword?: string;
+  baseUrl?: string;
+}
+
+export interface GenericEmailPayload {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
 }
 
 /**
@@ -111,19 +130,134 @@ export async function dispatchTermiiMessage(input: {
 }
 
 /**
+ * Core transactional email dispatcher.
+ * Supports:
+ * - Supabase Email Delivery (via Edge Function or Supabase SMTP)
+ * - Resend HTTP API
+ * - Console simulation for development / testing environments
+ */
+export async function sendTransactionalEmail(
+  payload: GenericEmailPayload,
+): Promise<NotificationDispatchResult> {
+  const emailDriver = (process.env["EMAIL_DRIVER"] || "console").toLowerCase();
+  const resendApiKey = process.env["RESEND_API_KEY"];
+  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <notifications@kelvora.app>";
+  const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+  const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+
+  // 1. Resend Driver (Direct or via configured Resend key)
+  if ((emailDriver === "resend" || emailDriver === "supabase") && resendApiKey && resendApiKey.startsWith("re_")) {
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: payload.to,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("[Notification Engine] Resend delivery error:", errText);
+        return {
+          success: false,
+          channel: "EMAIL",
+          recipient: payload.to,
+          error: errText,
+        };
+      }
+
+      const resData = (await response.json()) as { id?: string };
+      return {
+        success: true,
+        channel: "EMAIL",
+        messageId: resData.id || `resend_${Date.now()}`,
+        recipient: payload.to,
+      };
+    } catch (e) {
+      console.error("[Notification Engine] Resend HTTP call failed:", e);
+      return {
+        success: false,
+        channel: "EMAIL",
+        recipient: payload.to,
+        error: String(e),
+      };
+    }
+  }
+
+  // 2. Supabase Edge Function Driver (send-email hook / edge function)
+  if (emailDriver === "supabase" && supabaseUrl && serviceRoleKey) {
+    try {
+      const edgeUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/send-email`;
+      const response = await fetch(edgeUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: payload.to,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text,
+        }),
+      });
+
+      if (response.ok) {
+        const resData = (await response.json().catch(() => ({}))) as { id?: string };
+        return {
+          success: true,
+          channel: "EMAIL",
+          messageId: resData.id || `supabase_fn_${Date.now()}`,
+          recipient: payload.to,
+        };
+      }
+    } catch (e) {
+      console.warn("[Notification Engine] Supabase edge function unavailable, falling back to console:", e);
+    }
+  }
+
+  // 3. Fallback: Console Logging with full payload details for local dev & testing
+  console.log(`\n================== [NOTIFICATIONS DISPATCH: EMAIL (${emailDriver.toUpperCase()})] ==================`);
+  console.log(`From:    ${fromEmail}`);
+  console.log(`To:      ${payload.to}`);
+  console.log(`Subject: ${payload.subject}`);
+  console.log(`--- Content Preview ---`);
+  console.log(payload.text || payload.html.replace(/<[^>]+>/g, " ").slice(0, 300));
+  console.log(`========================================================================\n`);
+
+  return {
+    success: true,
+    channel: "CONSOLE",
+    recipient: payload.to,
+    messageId: `console_mail_${Date.now()}`,
+    details: {
+      subject: payload.subject,
+      recipient: payload.to,
+      driver: emailDriver,
+    },
+  };
+}
+
+/**
  * Dispatches an automated approval request email & WhatsApp notification with 1-click token
  */
 export async function dispatchApprovalNotification(
   params: ApprovalNotificationParams,
 ): Promise<NotificationDispatchResult> {
-  const baseUrl = params.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000";
+  const baseUrl = (params.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
   const approveUrl = `${baseUrl}/approve/${params.actionToken}?decision=approved`;
   const rejectUrl = `${baseUrl}/approve/${params.actionToken}?decision=rejected`;
   const viewUrl = `${baseUrl}/approve/${params.actionToken}`;
-
-  const resendApiKey = process.env["RESEND_API_KEY"];
-  const emailDriver = process.env["EMAIL_DRIVER"] || "console";
-  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <notifications@kelvora.app>";
 
   // Dispatch WhatsApp alert if phone number is provided
   if (params.recipientPhone) {
@@ -136,7 +270,6 @@ export async function dispatchApprovalNotification(
       `Direct Approve: ${approveUrl}\n` +
       `Direct Reject: ${rejectUrl}`;
 
-    // Dispatched asynchronously so email dispatch is not blocked
     dispatchTermiiMessage({
       to: params.recipientPhone,
       message: waText,
@@ -144,84 +277,38 @@ export async function dispatchApprovalNotification(
     }).catch((e) => console.error("[Notification] Outbound WhatsApp background error:", e));
   }
 
-  // If Resend API Key is configured in production, send via Resend
-  if (emailDriver !== "console" && resendApiKey && resendApiKey.startsWith("re_")) {
-    try {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: params.recipientEmail,
-          subject: `Action Required: Approval Needed for Requisition ${params.requisitionNumber}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 12px;">
-              <h2 style="color: #0B1457; margin-bottom: 8px;">Requisition Approval Required</h2>
-              <p style="color: #4B556D; font-size: 14px;">Hello ${params.recipientName}, a new spend requisition requires your approval clearance as <strong>${params.approverRole}</strong>.</p>
-              
-              <div style="background-color: #F8FAFC; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #E2E8F0;">
-                <p style="margin: 4px 0; font-size: 13px;"><strong>Requisition:</strong> ${params.requisitionTitle} (${params.requisitionNumber})</p>
-                <p style="margin: 4px 0; font-size: 13px;"><strong>Requested By:</strong> ${params.requesterName}</p>
-                <p style="margin: 4px 0; font-size: 14px; color: #0B1457;"><strong>Total Commitment:</strong> ₦${params.totalAmountNgn.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</p>
-              </div>
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #ffffff;">
+      <div style="border-bottom: 2px solid #0B1457; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="color: #0B1457; margin: 0 0 4px 0; font-size: 20px;">Kelvora — Approval Clearance Required</h2>
+        <span style="color: #64748B; font-size: 12px;">Auditable Procurement Workflow</span>
+      </div>
+      <p style="color: #334155; font-size: 14px; line-height: 1.5;">Hello ${params.recipientName}, a new spend requisition requires your approval clearance as <strong>${params.approverRole}</strong>.</p>
+      
+      <div style="background-color: #F8FAFC; padding: 18px; border-radius: 8px; margin: 20px 0; border: 1px solid #E2E8F0;">
+        <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Requisition:</strong> ${params.requisitionTitle} (${params.requisitionNumber})</p>
+        <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Requested By:</strong> ${params.requesterName}</p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0B1457; font-weight: bold;"><strong>Total Amount:</strong> ₦${params.totalAmountNgn.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</p>
+      </div>
 
-              <div style="margin: 24px 0; display: flex; gap: 12px;">
-                <a href="${approveUrl}" style="background-color: #0001FF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;">Approve Immediately</a>
-                <a href="${rejectUrl}" style="background-color: #EF4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; margin-left: 8px;">Reject</a>
-              </div>
+      <div style="margin: 28px 0; display: flex; gap: 12px;">
+        <a href="${approveUrl}" style="background-color: #0001FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;">Approve Immediately</a>
+        <a href="${rejectUrl}" style="background-color: #EF4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; margin-left: 8px;">Reject</a>
+      </div>
 
-              <p style="font-size: 12px; color: #94A3B8; margin-top: 24px;">This single-use link expires in 24 hours. Alternatively, log in to view details: <a href="${viewUrl}" style="color: #0001FF;">View in Dashboard</a>.</p>
-            </div>
-          `,
-        }),
-      });
+      <p style="font-size: 12px; color: #64748B; margin-top: 24px; line-height: 1.5;">
+        This single-use cryptographic link expires in 72 hours. Alternatively, log in to review full line items:
+        <br/><a href="${viewUrl}" style="color: #0001FF; font-weight: 600;">View in Dashboard (${viewUrl})</a>
+      </p>
+    </div>
+  `;
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("[Notification] Resend API Error:", errText);
-        return {
-          success: false,
-          channel: "EMAIL",
-          recipient: params.recipientEmail,
-          error: errText,
-        };
-      }
-
-      const resData = await response.json();
-      return {
-        success: true,
-        channel: "EMAIL",
-        messageId: resData.id,
-        recipient: params.recipientEmail,
-      };
-    } catch (e) {
-      console.error("[Notification] Outbound dispatch failed:", e);
-      return {
-        success: false,
-        channel: "EMAIL",
-        recipient: params.recipientEmail,
-        error: String(e),
-      };
-    }
-  }
-
-  // Development / Test Fallback: Clean console log
-  console.log(`\n================== [NOTIFICATIONS DISPATCH: APPROVAL] ==================`);
-  console.log(`To: ${params.recipientName} <${params.recipientEmail}>`);
-  console.log(`Subject: Action Required: Approval for Requisition ${params.requisitionNumber}`);
-  console.log(`1-Click Approve Link: ${approveUrl}`);
-  console.log(`1-Click Reject Link:  ${rejectUrl}`);
-  console.log(`========================================================================\n`);
-
-  return {
-    success: true,
-    channel: "CONSOLE",
-    recipient: params.recipientEmail,
-    messageId: `mock_${Date.now()}`,
-  };
+  return sendTransactionalEmail({
+    to: params.recipientEmail,
+    subject: `Action Required: Approval Needed for Requisition ${params.requisitionNumber}`,
+    html,
+    text: `Approval required for ${params.requisitionNumber}: ${params.requisitionTitle} (₦${params.totalAmountNgn}). Review & Approve: ${viewUrl}`,
+  });
 }
 
 /**
@@ -230,13 +317,8 @@ export async function dispatchApprovalNotification(
 export async function dispatchPoAwardNotification(
   params: PoNotificationParams,
 ): Promise<NotificationDispatchResult> {
-  const baseUrl = params.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000";
-  // The supplier review and electronic acknowledgment portal is /quote/$token
+  const baseUrl = (params.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
   const ackUrl = `${baseUrl}/quote/${params.actionToken}`;
-
-  const resendApiKey = process.env["RESEND_API_KEY"];
-  const emailDriver = process.env["EMAIL_DRIVER"] || "console";
-  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <notifications@kelvora.app>";
 
   // Optional WhatsApp alert to supplier contact
   if (params.recipientPhone) {
@@ -253,64 +335,81 @@ export async function dispatchPoAwardNotification(
     }).catch((e) => console.error("[Notification] Outbound PO WhatsApp error:", e));
   }
 
-  if (emailDriver !== "console" && resendApiKey && resendApiKey.startsWith("re_")) {
-    try {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: params.recipientEmail,
-          subject: `Purchase Order Awarded: ${params.poNumber}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 12px;">
-              <h2 style="color: #0B1457; margin-bottom: 8px;">Purchase Order Award Notification</h2>
-              <p style="color: #4B556D; font-size: 14px;">Hello ${params.supplierName}, you have been officially awarded Purchase Order <strong>${params.poNumber}</strong>.</p>
-              
-              <div style="background-color: #F8FAFC; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #E2E8F0;">
-                <p style="margin: 4px 0; font-size: 13px;"><strong>PO Number:</strong> ${params.poNumber}</p>
-                <p style="margin: 4px 0; font-size: 14px; color: #0B1457;"><strong>Total Order Value:</strong> ${params.currency} ${params.totalAmount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</p>
-              </div>
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #ffffff;">
+      <h2 style="color: #0B1457; margin-bottom: 8px;">Purchase Order Award Notification</h2>
+      <p style="color: #4B556D; font-size: 14px;">Hello ${params.supplierName}, you have been officially awarded Purchase Order <strong>${params.poNumber}</strong>.</p>
+      
+      <div style="background-color: #F8FAFC; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #E2E8F0;">
+        <p style="margin: 4px 0; font-size: 13px;"><strong>PO Number:</strong> ${params.poNumber}</p>
+        <p style="margin: 4px 0; font-size: 14px; color: #0B1457;"><strong>Total Order Value:</strong> ${params.currency} ${params.totalAmount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</p>
+      </div>
 
-              <div style="margin: 24px 0;">
-                <a href="${ackUrl}" style="background-color: #0001FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">Review & Acknowledge Purchase Order</a>
-              </div>
+      <div style="margin: 24px 0;">
+        <a href="${ackUrl}" style="background-color: #0001FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">Review & Acknowledge Purchase Order</a>
+      </div>
 
-              <p style="font-size: 12px; color: #94A3B8; margin-top: 24px;">Please review the order specifications and confirm delivery timeline. No account registration is required.</p>
-            </div>
-          `,
-        }),
-      });
+      <p style="font-size: 12px; color: #94A3B8; margin-top: 24px;">Please review the order specifications and confirm delivery timeline. No account registration is required.</p>
+    </div>
+  `;
 
-      if (response.ok) {
-        const resData = await response.json();
-        return {
-          success: true,
-          channel: "EMAIL",
-          messageId: resData.id,
-          recipient: params.recipientEmail,
-        };
-      }
-    } catch (e) {
-      console.error("[Notification] Resend PO dispatch error:", e);
-    }
-  }
+  return sendTransactionalEmail({
+    to: params.recipientEmail,
+    subject: `Purchase Order Awarded: ${params.poNumber}`,
+    html,
+    text: `Purchase Order ${params.poNumber} awarded. Review and acknowledge: ${ackUrl}`,
+  });
+}
 
-  console.log(`\n================== [NOTIFICATIONS DISPATCH: PO AWARD] ==================`);
-  console.log(`Supplier: ${params.supplierName} <${params.recipientEmail}>`);
-  console.log(
-    `PO Number: ${params.poNumber} (${params.currency} ${params.totalAmount.toLocaleString()})`,
-  );
-  console.log(`Supplier Acknowledgment URL: ${ackUrl}`);
-  console.log(`========================================================================\n`);
+/**
+ * Dispatches an automated invitation notification to a new organization teammate / sub-user
+ */
+export async function dispatchTeamInvitationNotification(
+  params: TeamInvitationNotificationParams,
+): Promise<NotificationDispatchResult> {
+  const baseUrl = (params.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
+  const loginUrl = `${baseUrl}/auth`;
+  const inviteUrl = params.inviteUrl || loginUrl;
 
-  return {
-    success: true,
-    channel: "CONSOLE",
-    recipient: params.recipientEmail,
-    messageId: `po_ack_${Date.now()}`,
-  };
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #ffffff;">
+      <div style="border-bottom: 2px solid #0B1457; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="color: #0B1457; margin: 0 0 4px 0; font-size: 20px;">Kelvora — Team Workspace Invitation</h2>
+        <span style="color: #64748B; font-size: 12px;">Enterprise Procurement & Spend Management</span>
+      </div>
+      <p style="color: #334155; font-size: 14px; line-height: 1.5;">
+        Hello${params.recipientName ? ` ${params.recipientName}` : ""},
+        <br/><br/>
+        <strong>${params.inviterName}</strong> has invited you to join the <strong>${params.orgName}</strong> workspace on Kelvora.
+      </p>
+
+      <div style="background-color: #F8FAFC; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #E2E8F0;">
+        <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Organization:</strong> ${params.orgName}</p>
+        <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Assigned Roles:</strong> ${params.roles.join(", ")}</p>
+        ${
+          params.temporaryPassword
+            ? `<p style="margin: 8px 0 0 0; font-size: 13px; color: #0B1457;"><strong>Temporary Password:</strong> <code style="background: #E2E8F0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${params.temporaryPassword}</code></p>`
+            : ""
+        }
+      </div>
+
+      <div style="margin: 24px 0;">
+        <a href="${inviteUrl}" style="background-color: #0001FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">
+          ${params.temporaryPassword ? "Sign In to Your Workspace" : "Accept Invitation & Join"}
+        </a>
+      </div>
+
+      <p style="font-size: 12px; color: #64748B; margin-top: 24px; line-height: 1.5;">
+        You can access your team portal directly at: <a href="${inviteUrl}" style="color: #0001FF;">${inviteUrl}</a>.
+        ${params.temporaryPassword ? " Please change your password upon your first sign in." : ""}
+      </p>
+    </div>
+  `;
+
+  return sendTransactionalEmail({
+    to: params.recipientEmail,
+    subject: `You've been invited to join ${params.orgName} on Kelvora`,
+    html,
+    text: `You've been invited to join ${params.orgName} on Kelvora as ${params.roles.join(", ")}. Sign in: ${inviteUrl}`,
+  });
 }

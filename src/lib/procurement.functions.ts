@@ -208,11 +208,39 @@ export const quoteAttachmentUrlFn = createServerFn({ method: "POST" })
 export const inviteTeammateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z.object({ email: z.string().email(), roles: z.array(roleEnum) }).parse(raw),
+    z.object({ email: z.string().email(), roles: z.array(roleEnum), baseUrl: z.string().optional() }).parse(raw),
   )
   .handler(async ({ data, context }) => {
     const { inviteTeammate } = await import("@/lib/procurement.server");
     return inviteTeammate(context.userId, data);
+  });
+
+export const createSubUserFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(6).optional(),
+        fullName: z.string().min(2),
+        department: z.string().optional(),
+        roles: z.array(roleEnum),
+        sendEmail: z.boolean().optional(),
+        baseUrl: z.string().optional(),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const { createSubUser } = await import("@/lib/procurement.server");
+    return createSubUser(context.userId, data);
+  });
+
+export const removeSubUserFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ targetUserId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { removeSubUser } = await import("@/lib/procurement.server");
+    return removeSubUser(context.userId, data.targetUserId);
   });
 
 export const cancelInvitationFn = createServerFn({ method: "POST" })

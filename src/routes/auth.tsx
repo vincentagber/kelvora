@@ -83,15 +83,19 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "forgot") {
-        await supabase.auth
-          .resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
-          })
-          .catch(() => undefined);
+        const targetEmail = email.trim();
+        const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          console.error("[Auth] Reset password request failed:", error);
+          throw error;
+        }
         await logSecurityEventFn({
-          data: { event: "password_reset_requested", email },
+          data: { event: "password_reset_requested", email: targetEmail },
         }).catch(() => undefined);
         setResetSent(true);
+        toast.success("Password recovery instructions dispatched!");
         return;
       }
 
