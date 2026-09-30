@@ -1971,9 +1971,22 @@ export async function createSubUser(
     throw new Error("That email is already assigned to a different organization.");
   }
 
-  // 2. Create user in Supabase Auth via admin API
+  // 2. Create or sync user in Supabase Auth via admin API
   let targetUserId = existingProfile?.id;
-  if (!targetUserId) {
+
+  if (targetUserId) {
+    // If the user profile already exists in this organization, update auth password and metadata so credentials work immediately
+    await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        organization_name: actor.fullName,
+      },
+    }).catch((err) => {
+      console.warn("[createSubUser] Auth password update notice for existing profile:", err);
+    });
+  } else {
     const { data: authCreated, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: temporaryPassword,
@@ -1985,11 +1998,29 @@ export async function createSubUser(
     });
 
     if (createAuthError) {
-      if (createAuthError.message.includes("already registered") || (createAuthError as any).status === 422) {
-        const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+      const isAlreadyRegistered =
+        createAuthError.message.toLowerCase().includes("already") ||
+        createAuthError.message.toLowerCase().includes("registered") ||
+        createAuthError.message.toLowerCase().includes("exists") ||
+        (createAuthError as any).status === 422 ||
+        (createAuthError as any).code === "email_exists";
+
+      if (isAlreadyRegistered) {
+        const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
         const matched = (userList?.users ?? []).find((u) => u.email?.toLowerCase() === email);
         if (matched) {
           targetUserId = matched.id;
+          // Synchronize password so credentials work immediately
+          await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+            password: temporaryPassword,
+            email_confirm: true,
+            user_metadata: {
+              full_name: fullName,
+              organization_name: actor.fullName,
+            },
+          }).catch((err) => {
+            console.warn("[createSubUser] Auth password update notice for matched user:", err);
+          });
         } else {
           throw new Error(`Authentication user setup failed: ${createAuthError.message}`);
         }
@@ -2025,7 +2056,7 @@ export async function createSubUser(
     .eq("org_id", actor.orgId)
     .ilike("email", email);
 
-  // 6. Dispatch transactional welcome/credentials email
+  // 6. Dispatch transactional welcome/credentials email (bounded by 3s timeout to never hang HTTP response)
   let notificationResult: any = null;
   if (input.sendEmail !== false) {
     try {
@@ -2036,15 +2067,18 @@ export async function createSubUser(
         .eq("id", actor.orgId)
         .maybeSingle();
 
-      notificationResult = await dispatchTeamInvitationNotification({
-        recipientEmail: email,
-        recipientName: fullName,
-        orgName: orgData?.name || "Kelvora Workspace",
-        inviterName: actor.fullName,
-        roles,
-        inviteUrl: `${baseUrl}/auth`,
-        temporaryPassword,
-      });
+      notificationResult = await Promise.race([
+        dispatchTeamInvitationNotification({
+          recipientEmail: email,
+          recipientName: fullName,
+          orgName: orgData?.name || "Kelvora Workspace",
+          inviterName: actor.fullName,
+          roles,
+          inviteUrl: `${baseUrl}/auth`,
+          temporaryPassword,
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+      ]);
     } catch (emailErr) {
       console.warn("[createSubUser] Outbound email notification warning:", emailErr);
     }

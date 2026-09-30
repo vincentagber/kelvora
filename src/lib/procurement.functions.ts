@@ -220,11 +220,11 @@ export const createSubUserFn = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) =>
     z
       .object({
-        email: z.string().email(),
-        password: z.string().min(6).optional(),
-        fullName: z.string().min(2),
+        email: z.string().email("Please provide a valid corporate email address"),
+        password: z.string().min(6, "Password must be at least 6 characters").optional(),
+        fullName: z.string().min(2, "Full name must be at least 2 characters"),
         department: z.string().optional(),
-        roles: z.array(roleEnum),
+        roles: z.array(roleEnum).min(1, "Please assign at least one operational role"),
         sendEmail: z.boolean().optional(),
         baseUrl: z.string().optional(),
       })

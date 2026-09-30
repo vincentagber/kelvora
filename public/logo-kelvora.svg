@@ -1,0 +1,27 @@
+<svg width="220" height="52" viewBox="0 0 220 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kelvoraGrad" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0001FF" />
+      <stop offset="100%" stop-color="#0B1457" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0001FF" />
+    </linearGradient>
+  </defs>
+
+  <!-- Modern Geometric Shield / Icon -->
+  <rect x="4" y="4" width="44" height="44" rx="12" fill="url(#kelvoraGrad)" />
+  <rect x="4" y="4" width="44" height="44" rx="12" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="1" />
+  
+  <!-- Stylized Geometric 'K' -->
+  <path d="M19 15V37" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M33 17L21 27L33 37" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="33" cy="17" r="3" fill="url(#accentGrad)" />
+
+  <!-- Brand Wordmark: Kelvora -->
+  <text x="58" y="34" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800" letter-spacing="-0.5px" fill="#0B1457">
+    Kelvora
+  </text>
+  <circle cx="160" cy="22" r="3" fill="#0001FF" />
+</svg>

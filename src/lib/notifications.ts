@@ -166,6 +166,9 @@ export async function sendTransactionalEmail(
         tls: {
           rejectUnauthorized: false,
         },
+        connectionTimeout: 3000,
+        greetingTimeout: 3000,
+        socketTimeout: 3000,
       });
 
       const info = await transporter.sendMail({

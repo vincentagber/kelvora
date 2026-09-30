@@ -13,6 +13,11 @@ import {
   UserX,
   AlertCircle,
   ExternalLink,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AppRole } from "@/lib/useMe";
@@ -288,11 +293,15 @@ function ManageSubUsersCard() {
   const [fullName, setFullName] = useState("");
   const [department, setDepartment] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [roles, setRoles] = useState<AppRole[]>(["requester"]);
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
     temporaryPassword?: string;
+    fullName: string;
+    roles: AppRole[];
+    department?: string;
   } | null>(null);
 
   const invites = useQuery({
@@ -326,6 +335,9 @@ function ManageSubUsersCard() {
       setCreatedCredentials({
         email: res.email,
         temporaryPassword: res.temporaryPassword,
+        fullName: res.fullName,
+        roles: (res.roles as AppRole[]) || roles,
+        department: department.trim() || undefined,
       });
       setEmail("");
       setFullName("");
@@ -374,6 +386,55 @@ function ManageSubUsersCard() {
     }
   }
 
+  const generateRandomPassword = () => {
+    const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const lowercase = "abcdefghjkmnpqrstuvwxyz";
+    const numbers = "23456789";
+    const symbols = "!@#$%";
+    let pwd = "";
+    pwd += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+    pwd += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+    pwd += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
+    const all = uppercase + lowercase + numbers + symbols;
+    for (let i = 0; i < 8; i++) {
+      pwd += all.charAt(Math.floor(Math.random() * all.length));
+    }
+    pwd = pwd.split("").sort(() => 0.5 - Math.random()).join("");
+    setPassword(pwd);
+    setShowPassword(true);
+    toast.info("Secure password generated");
+  };
+
+  const copyAllCredentials = () => {
+    if (!createdCredentials) return;
+    const lines = [
+      `Kelvora Workspace — Direct Sub-User Access`,
+      `Login URL: ${window.location.origin}/auth`,
+      `Full Name: ${createdCredentials.fullName}`,
+      `Corporate Email: ${createdCredentials.email}`,
+      createdCredentials.temporaryPassword ? `Temporary Password: ${createdCredentials.temporaryPassword}` : null,
+      createdCredentials.roles?.length ? `Assigned Roles: ${createdCredentials.roles.map((r) => ROLE_CONFIG[r]?.shortLabel || r).join(", ")}` : null,
+      createdCredentials.department ? `Department: ${createdCredentials.department}` : null,
+    ].filter(Boolean);
+    copyText(lines.join("\n"), "All login credentials");
+  };
+
+  const toggleRole = (role: AppRole) => {
+    setRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+    );
+  };
+
+  const selectAllRoles = () => setRoles([...ALL_ROLES]);
+  const resetDefaultRoles = () => setRoles(["requester"]);
+
+  const isFormValid =
+    fullName.trim().length >= 2 &&
+    email.trim().length > 3 &&
+    roles.length > 0 &&
+    (!password || password.length >= 6);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xs space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
@@ -421,44 +482,94 @@ function ManageSubUsersCard() {
       </div>
 
       {createdCredentials && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900">
-          <div className="space-y-1">
-            <p className="font-bold flex items-center gap-1.5 text-emerald-800">
-              <UserCheck className="h-4 w-4 text-emerald-600" />
-              Sub-user account active for {createdCredentials.email}
-            </p>
-            {createdCredentials.temporaryPassword && (
-              <p className="text-[11px] text-emerald-700">
-                Initial Password:{" "}
-                <code className="bg-white/80 border border-emerald-300 px-1.5 py-0.5 rounded font-mono font-bold text-slate-900">
-                  {createdCredentials.temporaryPassword}
-                </code>
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {createdCredentials.temporaryPassword && (
+        <div className="p-5 rounded-xl bg-emerald-50/90 border border-emerald-300/80 shadow-xs space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-emerald-950">
+                  Sub-User Account Active for {createdCredentials.fullName}
+                </h3>
+                <p className="text-xs text-emerald-800 mt-0.5">
+                  Account is immediately active and ready for immediate testing or corporate workflow access.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs bg-white text-slate-800 border-emerald-200 hover:bg-emerald-100/50"
-                onClick={() =>
-                  copyText(createdCredentials.temporaryPassword || "", "Temporary password")
-                }
+                className="h-8 text-xs bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100/60 font-semibold cursor-pointer"
+                onClick={copyAllCredentials}
               >
-                <Copy className="h-3.5 w-3.5 mr-1" /> Copy Password
+                <Copy className="h-3.5 w-3.5 mr-1 text-emerald-700" /> Copy All Credentials
               </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs bg-white text-slate-800 border-emerald-200 hover:bg-emerald-100/50"
-              onClick={() => setCreatedCredentials(null)}
-            >
-              Dismiss
-            </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-emerald-800 hover:text-emerald-950 hover:bg-emerald-100/50 cursor-pointer"
+                onClick={() => setCreatedCredentials(null)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-1 border-t border-emerald-200/60">
+            <div className="rounded-lg bg-white/90 border border-emerald-200 p-2.5 space-y-1">
+              <span className="text-[10px] font-semibold text-emerald-800 uppercase tracking-wider">
+                Teammate Identity
+              </span>
+              <p className="text-xs font-bold text-slate-900 truncate">
+                {createdCredentials.fullName}
+              </p>
+              <p className="text-[11px] text-slate-600 truncate font-mono">
+                {createdCredentials.email}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-white/90 border border-emerald-200 p-2.5 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-emerald-800 uppercase tracking-wider">
+                  Initial Password
+                </span>
+                {createdCredentials.temporaryPassword && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyText(createdCredentials.temporaryPassword || "", "Password")
+                    }
+                    className="text-[11px] text-emerald-700 hover:text-emerald-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="h-3 w-3" /> Copy
+                  </button>
+                )}
+              </div>
+              <p className="text-xs font-mono font-bold text-slate-900 break-all bg-emerald-100/50 px-2 py-1 rounded border border-emerald-200/70">
+                {createdCredentials.temporaryPassword || "(unchanged)"}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-white/90 border border-emerald-200 p-2.5 space-y-1 sm:col-span-2 lg:col-span-1">
+              <span className="text-[10px] font-semibold text-emerald-800 uppercase tracking-wider">
+                Assigned Operational Roles
+              </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {(createdCredentials.roles ?? []).map((role) => (
+                  <span
+                    key={role}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-900 border border-emerald-200"
+                  >
+                    <Check className="h-2.5 w-2.5 text-emerald-700" />
+                    {ROLE_CONFIG[role]?.shortLabel ?? role}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -468,6 +579,7 @@ function ManageSubUsersCard() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!isFormValid) return;
             createSubUserMutation.mutate();
           }}
           className="space-y-4"
@@ -475,7 +587,7 @@ function ManageSubUsersCard() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="sub-name" className="text-xs font-medium text-slate-700">
-                Full Name
+                Full Name <span className="text-rose-500">*</span>
               </Label>
               <Input
                 id="sub-name"
@@ -490,7 +602,7 @@ function ManageSubUsersCard() {
 
             <div className="space-y-1.5">
               <Label htmlFor="sub-email" className="text-xs font-medium text-slate-700">
-                Corporate Email Address
+                Corporate Email Address <span className="text-rose-500">*</span>
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -523,27 +635,68 @@ function ManageSubUsersCard() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="sub-password" className="text-xs font-medium text-slate-700">
-                Initial Password (Optional — Auto-generated if blank)
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="sub-password" className="text-xs font-medium text-slate-700">
+                  Initial Password (Optional — Auto-generated if blank)
+                </Label>
+                <button
+                  type="button"
+                  onClick={generateRandomPassword}
+                  className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="h-3 w-3" /> Auto-Generate
+                </button>
+              </div>
               <div className="relative">
                 <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <Input
                   id="sub-password"
-                  type="text"
+                  type={showPassword ? "text" : "password"}
                   minLength={6}
-                  className="h-10 rounded-lg pl-9 text-xs font-mono"
-                  placeholder="Auto-generated if left blank"
+                  className="h-10 rounded-lg pl-9 pr-10 text-xs font-mono"
+                  placeholder="Auto-generated if left blank (min 6 chars)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
               </div>
+              {password && password.length < 6 && (
+                <p className="text-[11px] text-rose-600 font-medium">
+                  Password must be at least 6 characters long.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-700">
-                Pre-assigned Operational Roles
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-slate-700">
+                  Pre-assigned Operational Roles <span className="text-rose-500">*</span>
+                </Label>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={selectAllRoles}
+                    className="text-slate-500 hover:text-slate-900 hover:underline cursor-pointer font-medium"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-slate-300">•</span>
+                  <button
+                    type="button"
+                    onClick={resetDefaultRoles}
+                    className="text-slate-500 hover:text-slate-900 hover:underline cursor-pointer font-medium"
+                  >
+                    Default (Requester)
+                  </button>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {ALL_ROLES.map((role) => {
                   const active = roles.includes(role);
@@ -551,9 +704,7 @@ function ManageSubUsersCard() {
                     <button
                       type="button"
                       key={role}
-                      onClick={() =>
-                        setRoles(active ? roles.filter((r) => r !== role) : [...roles, role])
-                      }
+                      onClick={() => toggleRole(role)}
                       className={cn(
                         "flex items-center gap-1.5 h-8 rounded-lg px-2.5 text-xs font-medium transition-all border cursor-pointer",
                         active
@@ -567,6 +718,11 @@ function ManageSubUsersCard() {
                   );
                 })}
               </div>
+              {roles.length === 0 && (
+                <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" /> Please select at least one role for this sub-user.
+                </p>
+              )}
             </div>
           </div>
 
@@ -583,12 +739,20 @@ function ManageSubUsersCard() {
 
             <Button
               type="submit"
-              disabled={createSubUserMutation.isPending || !email.trim() || !fullName.trim()}
-              className="h-10 px-5 rounded-lg bg-[#0B1457] hover:bg-[#0001FF] text-xs font-semibold text-white transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+              disabled={createSubUserMutation.isPending || !isFormValid}
+              className="h-10 px-5 rounded-lg bg-[#0B1457] hover:bg-[#0001FF] text-xs font-semibold text-white transition-colors shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
-              {createSubUserMutation.isPending
-                ? "Provisioning Account…"
-                : "Create & Provision Sub-User"}
+              {createSubUserMutation.isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Provisioning Account…</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>Create &amp; Provision Sub-User</span>
+                </>
+              )}
             </Button>
           </div>
         </form>

@@ -239,9 +239,9 @@ function AuthPage() {
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center">
             <img
-              src="/logo-dark.png"
+              src="/logo-kelvora-white.svg"
               alt="Kelvora Logo"
-              className="h-8 w-auto object-contain rounded-lg bg-white p-1.5 shadow-sm"
+              className="h-8 w-auto object-contain"
             />
           </Link>
           <Link
@@ -281,9 +281,9 @@ function AuthPage() {
           <div className="mb-8 flex items-center justify-between lg:hidden">
             <Link to="/">
               <img
-                src="/logo-dark.png"
+                src="/logo-kelvora.svg"
                 alt="Kelvora Logo"
-                className="h-8 w-auto object-contain rounded-md bg-[#0B1457] p-1.5"
+                className="h-8 w-auto object-contain"
               />
             </Link>
             <Link to="/" className="text-xs font-semibold text-[#0B1457] hover:underline">
