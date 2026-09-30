@@ -145,7 +145,55 @@ export async function sendTransactionalEmail(
   const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
   const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
-  // 1. Resend Driver (Direct or via configured Resend key)
+  // 1. Direct SMTP Driver (cPanel, standard mail server, or custom SMTP)
+  const smtpHost = process.env["SMTP_HOST"];
+  const smtpUser = process.env["SMTP_USER"];
+  const smtpPass = process.env["SMTP_PASS"];
+  const smtpPort = Number(process.env["SMTP_PORT"] || 465);
+  const smtpSecure = process.env["SMTP_SECURE"] === "false" ? false : smtpPort === 465;
+
+  if ((emailDriver === "smtp" || emailDriver === "supabase") && smtpHost && smtpUser && smtpPass) {
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: fromEmail,
+        to: payload.to,
+        subject: payload.subject,
+        html: payload.html,
+        text: payload.text,
+      });
+
+      return {
+        success: true,
+        channel: "EMAIL",
+        messageId: info.messageId || `smtp_${Date.now()}`,
+        recipient: payload.to,
+      };
+    } catch (e) {
+      console.error("[Notification Engine] Direct SMTP delivery failed:", e);
+      return {
+        success: false,
+        channel: "EMAIL",
+        recipient: payload.to,
+        error: String(e),
+      };
+    }
+  }
+
+  // 2. Resend Driver (Direct or via configured Resend key)
   if ((emailDriver === "resend" || emailDriver === "supabase") && resendApiKey && resendApiKey.startsWith("re_")) {
     try {
       const response = await fetch("https://api.resend.com/emails", {

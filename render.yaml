@@ -62,11 +62,21 @@ services:
 
       # ── Email Notifications ──
       - key: EMAIL_DRIVER
-        value: supabase
+        value: smtp
+      - key: EMAIL_FROM
+        value: "Kelvora <kelvora@useprocurely.com>"
+      - key: SMTP_HOST
+        value: useprocurely.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        value: kelvora@useprocurely.com
+      - key: SMTP_PASS
+        sync: false
       - key: RESEND_API_KEY
         sync: false
-      - key: EMAIL_FROM
-        value: "Kelvora <notifications@kelvora.app>"
 
       # ── WhatsApp / SMS ──
       - key: WHATSAPP_DRIVER
