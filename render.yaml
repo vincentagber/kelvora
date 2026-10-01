@@ -66,7 +66,7 @@ services:
       - key: EMAIL_FROM
         value: "Kelvora <kelvora@useprocurely.com>"
       - key: SMTP_HOST
-        value: useprocurely.com
+        value: 162.254.39.203
       - key: SMTP_PORT
         value: "465"
       - key: SMTP_SECURE
