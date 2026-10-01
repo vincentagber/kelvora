@@ -18,6 +18,9 @@ import {
   Receipt,
   ChevronDown,
   Fingerprint,
+  AlertTriangle,
+  LogIn,
+  RotateCcw,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +28,13 @@ import { logSecurityEventFn } from "@/lib/security.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -71,6 +81,8 @@ function AuthPage() {
   const [checkEmail, setCheckEmail] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [showDemoMenu, setShowDemoMenu] = useState(false);
+  const [existingAccountEmail, setExistingAccountEmail] = useState<string | null>(null);
+  const [showExistingModal, setShowExistingModal] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -111,10 +123,22 @@ function AuthPage() {
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          const errMsg = error.message.toLowerCase();
+          if (
+            errMsg.includes("already registered") ||
+            errMsg.includes("already exists") ||
+            errMsg.includes("user already")
+          ) {
+            setExistingAccountEmail(email.trim());
+            setShowExistingModal(true);
+            return;
+          }
+          throw error;
+        }
         if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
-          toast.error("An account with this email already exists. Please switch to Sign In.");
-          setMode("signin");
+          setExistingAccountEmail(email.trim());
+          setShowExistingModal(true);
           return;
         }
         if (!data.session) {
@@ -558,7 +582,7 @@ function AuthPage() {
           {mode === "forgot" && (
             <button
               type="button"
-              className="mt-4 w-full text-center text-xs font-bold text-[#0001FF] hover:underline"
+              className="mt-4 w-full text-center text-xs font-bold text-[#0001FF] hover:underline cursor-pointer"
               onClick={() => setMode("signin")}
             >
               Back to Sign In
@@ -566,6 +590,61 @@ function AuthPage() {
           )}
         </div>
       </div>
+
+      {/* Existing Account Registered Conflict Modal */}
+      <Dialog open={showExistingModal} onOpenChange={setShowExistingModal}>
+        <DialogContent className="sm:max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <DialogHeader className="space-y-3 text-center sm:text-left">
+            <div className="mx-auto sm:mx-0 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/70 shadow-2xs">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-lg font-bold text-[#0B1457]">
+              Account Already Registered
+            </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-slate-600">
+              <span className="font-semibold text-slate-900">{existingAccountEmail}</span> is already
+              registered in the database. What would you like to do?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-5 space-y-2.5">
+            <Button
+              type="button"
+              className="w-full h-11 justify-center rounded-xl bg-[#0001FF] hover:bg-[#0B1457] text-xs font-bold text-white transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+              onClick={() => {
+                setShowExistingModal(false);
+                setMode("signin");
+              }}
+            >
+              <LogIn className="h-4 w-4" /> Sign In with This Email
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-11 justify-center rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+              onClick={() => {
+                setShowExistingModal(false);
+                setMode("forgot");
+              }}
+            >
+              <RotateCcw className="h-4 w-4" /> Reset Password
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-9 justify-center rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 transition-all cursor-pointer"
+              onClick={() => {
+                setShowExistingModal(false);
+                setEmail("");
+              }}
+            >
+              Use a Different Email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
