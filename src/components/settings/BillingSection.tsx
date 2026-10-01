@@ -718,11 +718,14 @@ export function BillingSection({ isAdmin }: { isAdmin: boolean }) {
             {/* Tax Invoice Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-200">
               <div>
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-[#0B1457] flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                    KV
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/logo-kelvora.png"
+                    alt="Kelvora"
+                    className="h-7 w-auto object-contain"
+                  />
+                  <span className="text-xs text-slate-400 font-semibold">|</span>
+                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                     Kelvora Technologies Nigeria Ltd
                   </h3>
                 </div>

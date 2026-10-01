@@ -128,14 +128,15 @@ function TokenApprovalPage() {
       <div className="mx-auto max-w-2xl space-y-6">
         {/* Brand Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-          <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-[#0B1457] flex items-center justify-center text-white font-black text-sm shadow-xs">
-              KV
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">Kelvora</h1>
-              <p className="text-[10px] text-slate-400 font-medium">
-                Multi-Channel Executive Clearance
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo-kelvora.png"
+              alt="Kelvora"
+              className="h-8 w-auto object-contain"
+            />
+            <div className="hidden sm:block border-l border-slate-200 pl-3">
+              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                Executive Clearance Portal
               </p>
             </div>
           </div>

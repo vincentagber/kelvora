@@ -65,13 +65,17 @@ function PlatformShell() {
       {/* Deliberately different chrome: black bar + signal accent, never mistaken for an org view. */}
       <header className="border-b-2 border-signal bg-foreground">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-signal" aria-hidden />
-            <div>
-              <p className="font-display text-xl uppercase leading-none tracking-wider text-background">
-                Kelvora Platform Admin
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo-kelvora-white.png"
+              alt="Kelvora"
+              className="h-7 w-auto object-contain"
+            />
+            <div className="border-l border-white/20 pl-3">
+              <p className="font-display text-lg uppercase leading-none tracking-wider text-background">
+                Platform Admin
               </p>
-              <p className="mt-1 text-[11px] uppercase tracking-widest text-signal">
+              <p className="mt-1 text-[10px] uppercase tracking-widest text-signal">
                 All organizations · read-only visibility
               </p>
             </div>

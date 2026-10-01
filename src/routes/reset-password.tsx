@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -296,13 +296,18 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="flex items-center gap-2 mb-4 justify-center">
-          <div className="h-8 w-8 rounded-lg bg-[#0B1457] flex items-center justify-center text-white font-black text-xs">
-            KV
-          </div>
-          <span className="font-display text-xl tracking-wider text-slate-900 font-bold">
-            Kelvora
-          </span>
+        <div className="flex items-center justify-center mb-6">
+          <Link
+            to="/auth"
+            className="inline-block transition-transform duration-200 hover:scale-[1.03]"
+            title="Kelvora"
+          >
+            <img
+              src="/logo-kelvora.png"
+              alt="Kelvora"
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xs">
           <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">{title}</h1>
