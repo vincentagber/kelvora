@@ -200,9 +200,14 @@ export async function sendTransactionalEmail(
       const fromMatch = fromEmail.match(/^(.*?)\s*<(.+?)>$/);
       if (fromMatch) {
         senderName = fromMatch[1]?.trim() || "Kelvora";
-        senderEmail = fromMatch[2]?.trim() || "kelvora@useprocurely.com";
+        const candidate = fromMatch[2]?.trim() || "kelvora@useprocurely.com";
+        senderEmail = candidate.toLowerCase().includes("resend.dev")
+          ? "kelvora@useprocurely.com"
+          : candidate;
       } else if (fromEmail.includes("@")) {
-        senderEmail = fromEmail.trim();
+        senderEmail = fromEmail.toLowerCase().includes("resend.dev")
+          ? "kelvora@useprocurely.com"
+          : fromEmail.trim();
       }
 
       const response = await fetch("https://api.brevo.com/v3/smtp/email", {
