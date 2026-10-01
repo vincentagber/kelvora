@@ -29,6 +29,7 @@ import {
   createSubUserFn,
   removeSubUserFn,
 } from "@/lib/procurement.functions";
+import { useNotificationModal } from "@/hooks/use-notification-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,32 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ALL_ROLES, ROLE_CONFIG } from "./roleConfig";
+
+function getEmailDeliveryGuidance(error?: string) {
+  let providerMessage = error ?? "";
+  try {
+    const parsed = JSON.parse(providerMessage) as { message?: unknown };
+    if (typeof parsed.message === "string") providerMessage = parsed.message;
+  } catch {
+    // Provider errors may be plain text rather than JSON.
+  }
+
+  const resendDomainIssue = /testing emails|verify a domain|verified domain/i.test(
+    providerMessage,
+  );
+
+  return resendDomainIssue
+    ? {
+        resendDomainIssue,
+        message:
+          "Resend is in testing mode. Verify a sending domain, then use a sender address on that domain.",
+      }
+    : {
+        resendDomainIssue,
+        message:
+          "Check your email provider and sender settings, then try sending the message again.",
+      };
+}
 
 export function TeamSection({ isAdmin }: { isAdmin: boolean }) {
   const queryClient = useQueryClient();
@@ -288,6 +315,7 @@ export function TeamSection({ isAdmin }: { isAdmin: boolean }) {
 
 function ManageSubUsersCard() {
   const queryClient = useQueryClient();
+  const notifications = useNotificationModal();
   const [tab, setTab] = useState<"create" | "invite">("create");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -331,7 +359,30 @@ function ManageSubUsersCard() {
         },
       }),
     onSuccess: async (res) => {
-      toast.success(`Sub-user ${res.fullName} created successfully!`);
+        if (res.notificationResult?.success) {
+          toast.success(`Sub-user ${res.fullName} created and welcome email sent.`);
+        } else if (sendWelcomeEmail) {
+          const guidance = getEmailDeliveryGuidance(res.notificationResult?.error);
+          notifications.error(
+            <div className="space-y-2">
+              <p>The sub-user account is active and its credentials remain available in the confirmation panel.</p>
+              <p>{guidance.message}</p>
+              {guidance.resendDomainIssue && (
+                <a
+                  href="https://resend.com/domains"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900"
+                >
+                  Verify a sending domain <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>,
+            { title: "Account created, but welcome email was not sent" },
+          );
+        } else {
+          toast.success(`Sub-user ${res.fullName} created successfully!`);
+        }
       setCreatedCredentials({
         email: res.email,
         temporaryPassword: res.temporaryPassword,
@@ -357,13 +408,34 @@ function ManageSubUsersCard() {
         data: { email: email.trim(), roles, baseUrl: window.location.origin },
       }),
     onSuccess: async (result) => {
-      toast.success(
-        result.mode === "roles_updated"
-          ? "Teammate already in organization — roles updated."
-          : "Invitation dispatched successfully.",
-      );
-      setEmail("");
-      setRoles(["requester"]);
+        if (result.mode === "roles_updated") {
+          toast.success("Teammate already in organization — roles updated.");
+        } else if (result.emailSent) {
+          toast.success("Invitation dispatched and email sent successfully.");
+        } else {
+          const guidance = getEmailDeliveryGuidance(result.emailError);
+          notifications.error(
+            <div className="space-y-2">
+              <p>The invitation is saved and remains pending in your team list.</p>
+              <p>{guidance.message}</p>
+              {guidance.resendDomainIssue && (
+                <a
+                  href="https://resend.com/domains"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900"
+                >
+                  Verify a sending domain <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>,
+            { title: "Invitation saved, but email was not sent" },
+          );
+        }
+        if (result.mode === "roles_updated" || result.emailSent) {
+          setEmail("");
+          setRoles(["requester"]);
+        }
       await queryClient.invalidateQueries({ queryKey: ["invitations"] });
       await queryClient.invalidateQueries({ queryKey: ["team"] });
     },
@@ -885,6 +957,7 @@ function ManageSubUsersCard() {
           </div>
         </div>
       ) : null}
+
     </div>
   );
 }

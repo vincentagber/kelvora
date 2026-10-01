@@ -174,6 +174,10 @@ export function hasPermission(roles: AppRole[], permission: Permission): boolean
   return roles.some((role) => ROLE_PERMISSIONS[role]?.includes(permission));
 }
 
+export function canApproveRole(roles: AppRole[], requiredRole: AppRole): boolean {
+  return roles.includes(requiredRole) || hasPermission(roles, "approval.override");
+}
+
 /** Asserts that a user has a required permission, throwing a descriptive 403 error otherwise */
 export function requirePermission(roles: AppRole[], permission: Permission): void {
   if (!hasPermission(roles, permission)) {

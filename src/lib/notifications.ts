@@ -151,6 +151,7 @@ export async function sendTransactionalEmail(
   const smtpPass = process.env["SMTP_PASS"];
   const smtpPort = Number(process.env["SMTP_PORT"] || 465);
   const smtpSecure = process.env["SMTP_SECURE"] === "false" ? false : smtpPort === 465;
+  let providerError: string | undefined;
 
   if ((emailDriver === "smtp" || emailDriver === "supabase") && smtpHost && smtpUser && smtpPass) {
     try {
@@ -187,12 +188,7 @@ export async function sendTransactionalEmail(
       };
     } catch (e) {
       console.error("[Notification Engine] Direct SMTP delivery failed:", e);
-      return {
-        success: false,
-        channel: "EMAIL",
-        recipient: payload.to,
-        error: String(e),
-      };
+      providerError = e instanceof Error ? e.message : String(e);
     }
   }
 
@@ -274,7 +270,18 @@ export async function sendTransactionalEmail(
       }
     } catch (e) {
       console.warn("[Notification Engine] Supabase edge function unavailable, falling back to console:", e);
+      providerError = e instanceof Error ? e.message : String(e);
     }
+  }
+
+  // Never treat console output as delivery in production or log credential emails there.
+  if (process.env["NODE_ENV"] === "production") {
+    return {
+      success: false,
+      channel: "EMAIL",
+      recipient: payload.to,
+      error: providerError || "No configured email provider accepted the message.",
+    };
   }
 
   // 3. Fallback: Console Logging with full payload details for local dev & testing

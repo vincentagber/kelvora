@@ -35,3 +35,33 @@ npm run build
 # Start production server
 npm start
 ```
+
+## Global Notification Modals
+
+`NotificationModalProvider` is mounted in the application root. Any component beneath it can call `useNotificationModal()` to show a typed modal. Message text can be built from API responses or current records instead of hardcoding it:
+
+```tsx
+import { useNotificationModal } from "@/components/ui/notification-modal";
+
+function RequisitionActions({ requisition }: { requisition: { reference: string } }) {
+	const notifications = useNotificationModal();
+
+	async function submit() {
+		try {
+			const result = await submitRequisition(requisition.reference);
+			notifications.success(`Requisition ${result.reference} was submitted.`, {
+				title: "Requisition submitted",
+				durationMs: 4000,
+			});
+		} catch (error) {
+			notifications.error(error instanceof Error ? error.message : "Submission failed.", {
+				title: `Could not submit ${requisition.reference}`,
+			});
+		}
+	}
+
+	return <button onClick={submit}>Submit requisition</button>;
+}
+```
+
+Use `notifications.warning(message)` and `notifications.info(message)` for the other variants. `durationMs` controls auto-dismiss; omit it or pass `null` to keep a modal open until dismissed. New notifications replace the currently displayed one.

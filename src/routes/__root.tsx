@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportApplicationError } from "../lib/error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { NotificationModalProvider } from "@/components/ui/notification-modal";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -140,8 +141,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <NotificationModalProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </NotificationModalProvider>
       <Toaster />
     </QueryClientProvider>
   );

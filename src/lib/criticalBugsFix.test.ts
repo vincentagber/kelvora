@@ -319,5 +319,29 @@ describe("Critical Bugs Resolution: Core Domain & System Tests", () => {
       assert.equal(res.success, true);
       assert.equal(res.recipient, "compliance@kelvora.com");
     });
+
+    it("does not report console fallback as delivered in production", async () => {
+      const originalNodeEnv = process.env["NODE_ENV"];
+      const originalEmailDriver = process.env["EMAIL_DRIVER"];
+      process.env["NODE_ENV"] = "production";
+      process.env["EMAIL_DRIVER"] = "console";
+
+      try {
+        const res = await sendTransactionalEmail({
+          to: "compliance@kelvora.com",
+          subject: "Audit Report Generated",
+          html: "<h1>Audit Report Ready</h1>",
+          text: "Audit Report Ready.",
+        });
+
+        assert.equal(res.success, false);
+        assert.equal(res.channel, "EMAIL");
+      } finally {
+        if (originalNodeEnv === undefined) delete process.env["NODE_ENV"];
+        else process.env["NODE_ENV"] = originalNodeEnv;
+        if (originalEmailDriver === undefined) delete process.env["EMAIL_DRIVER"];
+        else process.env["EMAIL_DRIVER"] = originalEmailDriver;
+      }
+    });
   });
 });

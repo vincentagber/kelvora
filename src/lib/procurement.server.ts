@@ -4,7 +4,7 @@ import { computeAuditHash, verifyAuditChain, GENESIS_HASH } from "@/lib/audit";
 import { assertSingleCurrencyPo } from "@/lib/money";
 import { generateAccountingCsv, type ApprovedPaymentRecord } from "@/lib/export";
 import { generateSubscriptionBill } from "@/lib/paymentBillingChannels";
-import { assertSegregationOfDuties } from "@/lib/permissions";
+import { assertSegregationOfDuties, canApproveRole } from "@/lib/permissions";
 import { calculateThreeWayMatch } from "@/lib/nrsEInvoice";
 import { randomBytes, createHash } from "crypto";
 
@@ -408,12 +408,6 @@ export async function decideApprovalByToken(
     throw new Error("No active user profile in this organization could be resolved to record the decision.");
   }
 
-  // Mark token as consumed
-  await supabaseAdmin
-    .from("secure_action_tokens")
-    .update({ used_at: new Date().toISOString() })
-    .eq("id", record.id);
-
   // Execute approval
   const channelTag = record.recipient_identifier?.includes("@")
     ? `(via 1-Click Email: ${record.recipient_identifier})`
@@ -421,11 +415,19 @@ export async function decideApprovalByToken(
 
   const finalComment = comment ? `${comment} ${channelTag}` : channelTag;
 
-  return decideApproval(actorUserId, {
+  const result = await decideApproval(actorUserId, {
     stepId,
     decision,
     comment: finalComment,
   });
+
+  await supabaseAdmin
+    .from("secure_action_tokens")
+    .update({ used_at: new Date().toISOString() })
+    .eq("id", record.id)
+    .is("used_at", null);
+
+  return result;
 }
 
 /**
@@ -903,7 +905,7 @@ export async function decideApproval(
   if (step.status !== "pending") throw new Error("This step has already been decided.");
 
   // Support FR-2.6 Approver Delegation: check if user has the role OR has an active delegation from an authorized approver
-  let isAuthorized = actor.roles.includes(step.required_role as Role);
+  let isAuthorized = canApproveRole(actor.roles, step.required_role as Role);
   let delegatedFrom: { id: string; name: string } | null = null;
 
   if (!isAuthorized) {
@@ -1023,7 +1025,10 @@ export async function decideApproval(
     orgId: actor.orgId,
     requisitionId: step.requisition_id,
     actor,
-    actorRole: step.required_role as Role,
+    actorRole:
+      delegatedFrom || actor.roles.includes(step.required_role as Role)
+        ? (step.required_role as Role)
+        : "admin",
     action: input.decision === "approved" ? "approval_granted" : "approval_rejected",
     detail: auditDetail,
   });
@@ -1907,7 +1912,8 @@ export async function inviteTeammate(actorUserId: string, input: { email: string
   });
   if (error) throw new Error(error.message);
 
-  // Dispatch invitation email via notification engine
+  // Dispatch invitation email via notification engine.
+  let notificationResult: { success: boolean; error?: string };
   try {
     const { dispatchTeamInvitationNotification } = await import("./notifications");
     const { data: orgData } = await supabaseAdmin
@@ -1916,7 +1922,7 @@ export async function inviteTeammate(actorUserId: string, input: { email: string
       .eq("id", actor.orgId)
       .maybeSingle();
 
-    await dispatchTeamInvitationNotification({
+    notificationResult = await dispatchTeamInvitationNotification({
       recipientEmail: email,
       orgName: orgData?.name || "Kelvora Workspace",
       inviterName: actor.fullName,
@@ -1925,6 +1931,10 @@ export async function inviteTeammate(actorUserId: string, input: { email: string
     });
   } catch (emailErr) {
     console.warn("[inviteTeammate] Outbound invitation email warning:", emailErr);
+    notificationResult = {
+      success: false,
+      error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+    };
   }
 
   await logAudit({
@@ -1933,7 +1943,13 @@ export async function inviteTeammate(actorUserId: string, input: { email: string
     action: "teammate_invited",
     detail: `${email}: ${roles.join(", ")}`,
   });
-  return { ok: true, mode: "invited" as const, inviteUrl };
+  return {
+    ok: true,
+    mode: "invited" as const,
+    inviteUrl,
+    emailSent: notificationResult.success,
+    emailError: notificationResult.error,
+  };
 }
 
 /**
@@ -2057,7 +2073,7 @@ export async function createSubUser(
     .ilike("email", email);
 
   // 6. Dispatch transactional welcome/credentials email (bounded by 3s timeout to never hang HTTP response)
-  let notificationResult: any = null;
+  let notificationResult: { success: boolean; error?: string } | null = null;
   if (input.sendEmail !== false) {
     try {
       const { dispatchTeamInvitationNotification } = await import("./notifications");
@@ -2079,8 +2095,18 @@ export async function createSubUser(
         }),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
       ]);
+      if (!notificationResult) {
+        notificationResult = {
+          success: false,
+          error: "Email delivery timed out before it could be confirmed.",
+        };
+      }
     } catch (emailErr) {
       console.warn("[createSubUser] Outbound email notification warning:", emailErr);
+      notificationResult = {
+        success: false,
+        error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+      };
     }
   }
 

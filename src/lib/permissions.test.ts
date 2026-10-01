@@ -1,13 +1,21 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { hasPermission, requirePermission } from "./permissions.ts";
+import { canApproveRole, hasPermission, requirePermission } from "./permissions.ts";
 
 describe("RBAC & Capability Authorization Engine", () => {
   it("grants admin full access across all capabilities", () => {
     assert.equal(hasPermission(["admin"], "requisition.create"), true);
     assert.equal(hasPermission(["admin"], "approval_rules.manage"), true);
+    assert.equal(hasPermission(["admin"], "approval.override"), true);
     assert.equal(hasPermission(["admin"], "invoice.approve_payment"), true);
     assert.equal(hasPermission(["admin"], "organization.manage"), true);
+  });
+
+  it("lets organization admins override an approval role without broadening other roles", () => {
+    assert.equal(canApproveRole(["admin"], "finance"), true);
+    assert.equal(canApproveRole(["finance"], "finance"), true);
+    assert.equal(canApproveRole(["finance"], "executive"), false);
+    assert.equal(canApproveRole(["requester"], "finance"), false);
   });
 
   it("restricts requester from financial approval and payment actions", () => {
