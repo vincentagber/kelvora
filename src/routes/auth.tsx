@@ -112,6 +112,11 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+          toast.error("An account with this email already exists. Please switch to Sign In.");
+          setMode("signin");
+          return;
+        }
         if (!data.session) {
           setCheckEmail(true);
           return;
