@@ -52,22 +52,11 @@ function getEmailDeliveryGuidance(error?: string) {
     // Provider errors may be plain text rather than JSON.
   }
 
-  const resendDomainIssue = /testing emails|verify a domain|verified domain/i.test(
-    providerMessage,
-  );
-
-  return resendDomainIssue
-    ? {
-        resendDomainIssue,
-        message:
-          "Resend is in testing mode. Verify a sending domain, then use a sender address on that domain.",
-      }
-    : {
-        resendDomainIssue,
-        message: providerMessage
-          ? `Delivery details: ${providerMessage}`
-          : "Check your email provider and sender settings, then try sending the message again.",
-      };
+  return {
+    message: providerMessage
+      ? `Delivery details: ${providerMessage}`
+      : "Check your email provider and sender settings, then try sending the message again.",
+  };
 }
 
 export function TeamSection({ isAdmin }: { isAdmin: boolean }) {
@@ -368,16 +357,6 @@ function ManageSubUsersCard() {
             <div className="space-y-2">
               <p>The sub-user account is active and its credentials remain available in the confirmation panel.</p>
               <p>{guidance.message}</p>
-              {guidance.resendDomainIssue && (
-                <a
-                  href="https://resend.com/domains"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900"
-                >
-                  Verify a sending domain <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
             </div>,
             { title: "Account created, but welcome email was not sent" },
           );
@@ -419,16 +398,6 @@ function ManageSubUsersCard() {
             <div className="space-y-2">
               <p>The invitation is saved and remains pending in your team list.</p>
               <p>{guidance.message}</p>
-              {guidance.resendDomainIssue && (
-                <a
-                  href="https://resend.com/domains"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900"
-                >
-                  Verify a sending domain <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
             </div>,
             { title: "Invitation saved, but email was not sent" },
           );

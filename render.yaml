@@ -62,9 +62,11 @@ services:
 
       # ── Email Notifications ──
       - key: EMAIL_DRIVER
-        value: smtp
+        value: brevo
       - key: EMAIL_FROM
         value: "Kelvora <kelvora@useprocurely.com>"
+      - key: BREVO_API_KEY
+        sync: false
       - key: SMTP_HOST
         value: 162.254.39.203
       - key: SMTP_PORT
@@ -74,8 +76,6 @@ services:
       - key: SMTP_USER
         value: kelvora@useprocurely.com
       - key: SMTP_PASS
-        sync: false
-      - key: RESEND_API_KEY
         sync: false
 
       # ── WhatsApp / SMS ──

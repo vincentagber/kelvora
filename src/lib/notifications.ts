@@ -140,7 +140,6 @@ export async function sendTransactionalEmail(
   payload: GenericEmailPayload,
 ): Promise<NotificationDispatchResult> {
   const emailDriver = (process.env["EMAIL_DRIVER"] || "smtp").toLowerCase();
-  const resendApiKey = process.env["RESEND_API_KEY"];
   const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <kelvora@useprocurely.com>";
   const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
   const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
@@ -192,27 +191,39 @@ export async function sendTransactionalEmail(
     }
   }
 
-  // 2. Resend Driver (Direct or via configured Resend key)
-  if ((emailDriver === "resend" || emailDriver === "supabase") && resendApiKey && resendApiKey.startsWith("re_")) {
+  // 2. Brevo (Sendinblue) HTTP API Driver (Over standard HTTPS port 443 — supported on Render)
+  const brevoApiKey = process.env["BREVO_API_KEY"];
+  if ((emailDriver === "brevo" || (!smtpPass && brevoApiKey)) && brevoApiKey) {
     try {
-      const response = await fetch("https://api.resend.com/emails", {
+      let senderName = "Kelvora";
+      let senderEmail = "kelvora@useprocurely.com";
+      const fromMatch = fromEmail.match(/^(.*?)\s*<(.+?)>$/);
+      if (fromMatch) {
+        senderName = fromMatch[1]?.trim() || "Kelvora";
+        senderEmail = fromMatch[2]?.trim() || "kelvora@useprocurely.com";
+      } else if (fromEmail.includes("@")) {
+        senderEmail = fromEmail.trim();
+      }
+
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
+          accept: "application/json",
+          "api-key": brevoApiKey,
+          "content-type": "application/json",
         },
         body: JSON.stringify({
-          from: fromEmail,
-          to: payload.to,
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: payload.to }],
           subject: payload.subject,
-          html: payload.html,
-          text: payload.text,
+          htmlContent: payload.html,
+          textContent: payload.text || undefined,
         }),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error("[Notification Engine] Resend delivery error:", errText);
+        console.error("[Notification Engine] Brevo delivery error:", errText);
         return {
           success: false,
           channel: "EMAIL",
@@ -221,15 +232,15 @@ export async function sendTransactionalEmail(
         };
       }
 
-      const resData = (await response.json()) as { id?: string };
+      const resData = (await response.json()) as { messageId?: string };
       return {
         success: true,
         channel: "EMAIL",
-        messageId: resData.id || `resend_${Date.now()}`,
+        messageId: resData.messageId || `brevo_${Date.now()}`,
         recipient: payload.to,
       };
     } catch (e) {
-      console.error("[Notification Engine] Resend HTTP call failed:", e);
+      console.error("[Notification Engine] Brevo HTTP call failed:", e);
       return {
         success: false,
         channel: "EMAIL",
