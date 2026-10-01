@@ -2093,7 +2093,7 @@ export async function createSubUser(
           inviteUrl: `${baseUrl}/auth`,
           temporaryPassword,
         }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
       ]);
       if (!notificationResult) {
         notificationResult = {
