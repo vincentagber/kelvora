@@ -64,8 +64,9 @@ function getEmailDeliveryGuidance(error?: string) {
       }
     : {
         resendDomainIssue,
-        message:
-          "Check your email provider and sender settings, then try sending the message again.",
+        message: providerMessage
+          ? `Delivery details: ${providerMessage}`
+          : "Check your email provider and sender settings, then try sending the message again.",
       };
 }
 

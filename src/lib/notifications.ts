@@ -139,16 +139,16 @@ export async function dispatchTermiiMessage(input: {
 export async function sendTransactionalEmail(
   payload: GenericEmailPayload,
 ): Promise<NotificationDispatchResult> {
-  const emailDriver = (process.env["EMAIL_DRIVER"] || "console").toLowerCase();
+  const emailDriver = (process.env["EMAIL_DRIVER"] || "smtp").toLowerCase();
   const resendApiKey = process.env["RESEND_API_KEY"];
-  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <notifications@kelvora.app>";
+  const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <kelvora@useprocurely.com>";
   const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
   const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
   // 1. Direct SMTP Driver (cPanel, standard mail server, or custom SMTP)
-  const smtpHost = process.env["SMTP_HOST"];
-  const smtpUser = process.env["SMTP_USER"];
-  const smtpPass = process.env["SMTP_PASS"];
+  const smtpHost = process.env["SMTP_HOST"] || "162.254.39.203";
+  const smtpUser = process.env["SMTP_USER"] || "kelvora@useprocurely.com";
+  const smtpPass = process.env["SMTP_PASS"] || "B[vw~J}7K=qHz?mX";
   const smtpPort = Number(process.env["SMTP_PORT"] || 465);
   const smtpSecure = process.env["SMTP_SECURE"] === "false" ? false : smtpPort === 465;
   let providerError: string | undefined;
