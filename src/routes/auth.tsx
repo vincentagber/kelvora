@@ -12,7 +12,6 @@ import {
   EyeOff,
   Sparkles,
   KeyRound,
-  ArrowLeft,
   Smartphone,
   Scale,
   Receipt,
@@ -265,19 +264,13 @@ function AuthPage() {
         <div className="pointer-events-none absolute -bottom-40 -right-40 h-[450px] w-[450px] rounded-full bg-[#0001FF]/25 blur-[100px]" />
 
         {/* Top Header */}
-        <div className="relative z-10 flex items-center justify-between">
+        <div className="relative z-10 flex items-center">
           <Link to="/" className="inline-flex items-center">
             <img
               src="/logo-kelvora-white.png"
               alt="Kelvora Logo"
               className="h-8 w-auto object-contain"
             />
-          </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/75 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
           </Link>
         </div>
 
@@ -307,16 +300,13 @@ function AuthPage() {
       <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-16 xl:px-24">
         <div className="mx-auto w-full max-w-[430px]">
           {/* Mobile Header with Logo */}
-          <div className="mb-8 flex items-center justify-between lg:hidden">
+          <div className="mb-8 flex items-center lg:hidden">
             <Link to="/">
               <img
                 src="/logo-kelvora.png"
                 alt="Kelvora Logo"
                 className="h-8 w-auto object-contain"
               />
-            </Link>
-            <Link to="/" className="text-xs font-semibold text-[#0B1457] hover:underline">
-              ← Overview
             </Link>
           </div>
 

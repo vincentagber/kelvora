@@ -502,21 +502,21 @@ export async function generateStepApprovalLinks(stepId: string, originUrl?: stri
   const amountFormatted = `₦${Number(req.total_amount).toLocaleString("en-NG")}`;
 
   const whatsappMessage = [
-    `📋 *KELVORA — REQUISITION APPROVAL REQUIRED*`,
+    `*KELVORA — REQUISITION APPROVAL REQUIRED*`,
     ``,
     `*Requisition:* ${req.reference}`,
     `*Title:* ${req.title}`,
     `*Project Site:* ${projectName}`,
     `*Amount:* ${amountFormatted} (${req.currency})`,
     `*Requester:* ${requesterName}`,
-    `*Budget Status:* ${req.is_unbudgeted ? "⚠️ Unbudgeted Capex (Requires Management Clearance)" : "✅ Budgeted Milestone"}`,
+    `*Budget Status:* ${req.is_unbudgeted ? "Unbudgeted Capex (Requires Management Clearance)" : "Budgeted Milestone"}`,
     `*Clearance Stage:* ${step.reason || `${step.required_role} approval`}`,
     ``,
-    `👉 *Tap to Review & 1-Click Approve:*`,
+    `*Review & 1-Click Approve:*`,
     webReviewUrl,
     ``,
-    `👉 *Instant Approve:* ${webApproveUrl}`,
-    `❌ *Instant Reject:* ${webRejectUrl}`,
+    `*Instant Approve:* ${webApproveUrl}`,
+    `*Instant Reject:* ${webRejectUrl}`,
   ].join("\n");
 
   const cleanPhone = approverPhone ? approverPhone.replace(/\D/g, "") : "";

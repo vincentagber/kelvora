@@ -4,15 +4,13 @@ import {
   Smartphone,
   Copy,
   Sparkles,
-  CheckCircle2,
   ExternalLink,
-  ShieldCheck,
   Eye,
   Code2,
   Check,
   ArrowRight,
-  Clock,
-  AlertCircle,
+  Lock,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -74,35 +72,29 @@ export function WhatsAppClearanceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        {/* Header with WhatsApp branding */}
-        <div className="shrink-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-50 border-b border-slate-200/80 px-4 py-3.5 sm:px-6 sm:py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-sm shadow-emerald-500/20">
-              <FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6" />
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl">
+        {/* Header */}
+        <div className="shrink-0 bg-white border-b border-slate-100 px-5 py-4 sm:px-6">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366] text-white shadow-xs">
+              <FaWhatsapp className="h-5 w-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                  WhatsApp Clearance Channel
-                </DialogTitle>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                  <ShieldCheck className="h-3 w-3" />
-                  1-Click Secure
-                </span>
-              </div>
-              <DialogDescription className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-                Dispatch an instant, tokenized mobile approval prompt without password friction.
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-base font-semibold text-slate-900 tracking-tight">
+                WhatsApp Clearance Channel
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 mt-0.5 leading-normal">
+                Dispatch an instant, tokenized mobile approval link without password friction.
               </DialogDescription>
             </div>
           </div>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {isGeneratingLinks ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
               <p className="text-xs text-slate-600 font-medium">
                 Generating cryptographically secure single-use approval tokens…
               </p>
@@ -110,44 +102,44 @@ export function WhatsAppClearanceModal({
           ) : generatedLinks ? (
             <>
               {/* Approver Target Banner */}
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3.5 py-2.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100/80">
                     <Smartphone className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block truncate">
-                      Target Approver Mobile
+                    <span className="text-[11px] font-medium text-slate-500 block truncate">
+                      Approver Mobile
                     </span>
-                    <span className="text-xs font-bold text-slate-800 font-mono truncate block">
+                    <span className="text-xs font-semibold text-slate-900 font-mono truncate block">
                       {generatedLinks.approverPhone || "+234 (Registered Approver)"}
                     </span>
                   </div>
                 </div>
 
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200/70">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Delivery Ready
                 </span>
               </div>
 
               {/* View Switcher Header Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-slate-700 truncate">
-                    {viewMode === "preview" ? "WhatsApp Message Preview" : "Raw Template Payload"}
+                  <span className="text-xs font-semibold text-slate-800">
+                    {viewMode === "preview" ? "Dispatch Preview" : "Raw Template Payload"}
                   </span>
-                  <span className="hidden sm:inline-block text-[10px] text-slate-400">
-                    {viewMode === "preview" ? "• Recipient chat view" : "• Direct API text"}
+                  <span className="hidden sm:inline-block text-[11px] text-slate-400">
+                    {viewMode === "preview" ? "• Recipient WhatsApp chat view" : "• Direct API text"}
                   </span>
                 </div>
 
-                <div className="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-xs">
+                <div className="inline-flex shrink-0 rounded-lg border border-slate-200/70 bg-slate-100/80 p-0.5 text-xs">
                   <button
                     type="button"
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
                       viewMode === "preview"
-                        ? "bg-white text-slate-900 shadow-2xs"
+                        ? "bg-white text-slate-900 shadow-xs"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                     onClick={() => setViewMode("preview")}
@@ -157,9 +149,9 @@ export function WhatsAppClearanceModal({
                   </button>
                   <button
                     type="button"
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
                       viewMode === "raw"
-                        ? "bg-white text-slate-900 shadow-2xs"
+                        ? "bg-white text-slate-900 shadow-xs"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                     onClick={() => setViewMode("raw")}
@@ -173,27 +165,29 @@ export function WhatsAppClearanceModal({
               {/* View Content */}
               {viewMode === "preview" ? (
                 /* Authentic WhatsApp Chat Preview */
-                <div className="rounded-2xl border border-slate-200 bg-[#ECE5DD] p-3 sm:p-4 shadow-inner">
-                  <div className="flex items-center justify-between mb-2 px-1 text-[10px] text-slate-500">
-                    <span className="flex items-center gap-1 font-semibold text-emerald-800">
-                      <ShieldCheck className="h-3 w-3" />
-                      Encrypted WhatsApp Dispatch
+                <div className="rounded-2xl border border-slate-200/80 bg-[#EFEAE2] p-3.5 sm:p-5 shadow-inner">
+                  {/* System Encryption Pill */}
+                  <div className="flex items-center justify-center mb-3">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-600 font-medium bg-white/85 backdrop-blur-xs border border-slate-200/60 px-3 py-1 rounded-full shadow-2xs">
+                      <Lock className="h-2.5 w-2.5 text-slate-400" />
+                      End-to-end encrypted dispatch • Single-use token
                     </span>
-                    <span>Single-use token</span>
                   </div>
 
                   {/* WhatsApp Message Bubble */}
-                  <div className="relative max-w-full sm:max-w-[94%] rounded-2xl rounded-tl-xs bg-white p-4 shadow-sm border border-slate-200/60 text-slate-800 space-y-3">
+                  <div className="relative max-w-full sm:max-w-[92%] rounded-2xl rounded-tl-xs bg-white p-4 shadow-xs border border-slate-200/70 text-slate-800 space-y-3">
                     {/* Header */}
                     <div className="border-b border-slate-100 pb-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">📋</span>
-                        <span className="text-xs font-bold text-emerald-900 uppercase tracking-tight">
-                          Kelvora — Requisition Approval Required
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                          Kelvora Clearance
+                        </span>
+                        <span className="text-xs font-semibold text-slate-900">
+                          Requisition Approval Required
                         </span>
                       </div>
                       {parsed?.reference && (
-                        <span className="inline-block mt-1 font-mono text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                        <span className="inline-block mt-1.5 font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded-md">
                           {parsed.reference}
                         </span>
                       )}
@@ -204,13 +198,13 @@ export function WhatsAppClearanceModal({
                       {parsed?.fields.map((f, i) => (
                         <div
                           key={i}
-                          className="flex items-baseline justify-between gap-3 text-[11px] py-0.5 border-b border-slate-50 last:border-0"
+                          className="flex items-baseline justify-between gap-3 text-[11px] py-1 border-b border-slate-100/80 last:border-0"
                         >
-                          <span className="text-slate-500 font-medium shrink-0">{f.label}:</span>
+                          <span className="text-slate-500 font-normal shrink-0">{f.label}</span>
                           <span
-                            className={`text-right font-semibold ${
+                            className={`text-right font-medium ${
                               f.label.toLowerCase().includes("amount")
-                                ? "text-emerald-700 font-mono text-xs"
+                                ? "text-emerald-700 font-semibold font-mono text-xs"
                                 : "text-slate-900"
                             }`}
                           >
@@ -222,33 +216,31 @@ export function WhatsAppClearanceModal({
 
                     {/* 1-Click Interactive Buttons */}
                     <div className="pt-2 border-t border-slate-100 space-y-2">
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                        1-Click Mobile Actions
+                      <p className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">
+                        Interactive Mobile Actions
                       </p>
 
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold shadow-2xs">
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="text-sm">👉</span>
-                          <span className="truncate">Tap to Review &amp; 1-Click Approve</span>
-                        </div>
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-emerald-950 text-xs font-semibold shadow-2xs hover:bg-emerald-50 transition-colors">
+                        <span className="truncate">Review &amp; 1-Click Approve</span>
                         <ExternalLink className="h-3.5 w-3.5 text-emerald-700 shrink-0 ml-2" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold">
-                        <div className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-emerald-600 text-white shadow-2xs">
+                        <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-emerald-600 text-white shadow-2xs">
                           <Check className="h-3.5 w-3.5" />
                           <span>Instant Approve</span>
                         </div>
-                        <div className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-slate-100 text-rose-700 border border-rose-200/60">
-                          <span>❌ Instant Reject</span>
+                        <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white text-rose-700 border border-rose-200/80 shadow-2xs">
+                          <X className="h-3.5 w-3.5" />
+                          <span>Instant Reject</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Timestamp & double check */}
-                    <div className="flex items-center justify-end gap-1 pt-1 text-[10px] text-slate-400">
+                    <div className="flex items-center justify-end gap-1 pt-1 text-[10px] text-slate-400 font-medium">
                       <span>Just now</span>
-                      <span className="font-bold text-sky-500 text-xs">✓✓</span>
+                      <span className="font-bold text-[#53bdeb] text-[11px]">✓✓</span>
                     </div>
                   </div>
                 </div>
@@ -256,12 +248,12 @@ export function WhatsAppClearanceModal({
                 /* Raw Monospace Text View */
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    <label className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
                       Plaintext WhatsApp Payload
                     </label>
                     <span className="text-[10px] text-slate-400">Markdown formatted for WhatsApp</span>
                   </div>
-                  <div className="p-3.5 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto border border-slate-800 selection:bg-emerald-600">
+                  <div className="p-4 bg-slate-950 text-slate-100 rounded-xl font-mono text-[11px] whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto border border-slate-800 selection:bg-emerald-500/30">
                     {generatedLinks.whatsappMessage}
                   </div>
                 </div>
@@ -271,20 +263,20 @@ export function WhatsAppClearanceModal({
               <div className="grid sm:grid-cols-2 gap-2.5 pt-1">
                 <Button
                   type="button"
-                  className="h-11 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="h-10 bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1da850] text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
                   onClick={() => {
                     window.open(generatedLinks.whatsappDirectUrl, "_blank", "noopener,noreferrer");
                   }}
                 >
                   <FaWhatsapp className="h-4 w-4 shrink-0" />
                   Launch WhatsApp
-                  <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
                 </Button>
 
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs rounded-xl shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="h-10 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs rounded-xl shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-2"
                   onClick={handleCopy}
                 >
                   {copied ? (
@@ -302,10 +294,10 @@ export function WhatsAppClearanceModal({
               </div>
 
               {/* Developer Webhook Simulation Box */}
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex h-5 items-center justify-center rounded px-1.5 bg-amber-100 text-amber-800 text-[10px] font-bold">
-                    SIMULATION
+                  <span className="inline-flex items-center rounded-md px-1.5 py-0.5 bg-slate-200/70 text-slate-600 text-[10px] font-bold tracking-wider uppercase">
+                    Simulation
                   </span>
                   <span className="text-[11px] text-slate-600 font-medium">
                     Test carrier inbound webhook callback:
@@ -316,11 +308,11 @@ export function WhatsAppClearanceModal({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs font-semibold bg-white text-slate-800 border-slate-200 hover:bg-slate-100 hover:text-slate-900 cursor-pointer shadow-2xs self-end sm:self-auto"
+                  className="h-7 text-xs font-semibold bg-white text-slate-700 border-slate-200 hover:bg-slate-100 cursor-pointer shadow-2xs self-end sm:self-auto"
                   disabled={isSimulatingApproval}
                   onClick={() => onSimulateApproval(generatedLinks.stepId)}
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
+                  <Sparkles className="h-3 w-3 mr-1.5 text-amber-500" />
                   {isSimulatingApproval ? "Simulating Webhook…" : "Simulate WhatsApp Approval"}
                 </Button>
               </div>
@@ -348,7 +340,7 @@ function parseMessage(raw: string) {
     const match = line.match(/^\*([^*]+):\*\s*(.*)$/);
     if (match && match[1]) {
       const label = match[1].trim();
-      const value = (match[2] || "").trim();
+      let value = (match[2] || "").trim();
 
       if (label.toLowerCase() === "requisition") {
         reference = value;
@@ -359,6 +351,9 @@ function parseMessage(raw: string) {
       if (value.startsWith("http://") || value.startsWith("https://")) {
         continue;
       }
+
+      // Strip any leading emoji symbols from values for clean presentation
+      value = value.replace(/^[✅⚠️❌👉📋\s]+/, "");
 
       if (value) {
         fields.push({ label, value });
