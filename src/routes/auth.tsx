@@ -24,6 +24,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { logSecurityEventFn } from "@/lib/security.functions";
+import { registerWorkspaceFn, requestPasswordResetFn } from "@/lib/procurement.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,13 +96,12 @@ function AuthPage() {
     try {
       if (mode === "forgot") {
         const targetEmail = email.trim();
-        const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-          redirectTo: `${window.location.origin}/reset-password`,
+        await requestPasswordResetFn({
+          data: {
+            email: targetEmail,
+            redirectTo: `${window.location.origin}/reset-password`,
+          },
         });
-        if (error) {
-          console.error("[Auth] Reset password request failed:", error);
-          throw error;
-        }
         await logSecurityEventFn({
           data: { event: "password_reset_requested", email: targetEmail },
         }).catch(() => undefined);
@@ -111,41 +111,38 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: {
-              full_name: fullName || email.split("@")[0],
-              organization_name: orgName || "Enterprise Workspace",
-            },
+        const regRes = await registerWorkspaceFn({
+          data: {
+            fullName: (fullName.trim() || email.split("@")[0]),
+            orgName: (orgName.trim() || "Enterprise Workspace"),
+            email: email.trim().toLowerCase(),
+            password,
+            baseUrl: window.location.origin,
           },
         });
-        if (error) {
-          const errMsg = error.message.toLowerCase();
-          if (
-            errMsg.includes("already registered") ||
-            errMsg.includes("already exists") ||
-            errMsg.includes("user already")
-          ) {
-            setExistingAccountEmail(email.trim());
-            setShowExistingModal(true);
-            return;
-          }
-          throw error;
-        }
-        if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+
+        if (regRes.alreadyExists) {
           setExistingAccountEmail(email.trim());
           setShowExistingModal(true);
           return;
         }
-        if (!data.session) {
-          setCheckEmail(true);
+
+        // The user account is confirmed & workspace is ready.
+        // Sign in immediately:
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+
+        if (signInErr) {
+          toast.success("Workspace created! Please enter your password to sign in.");
+          setMode("signin");
           return;
         }
-        toast.success("Account created successfully!");
+
+        toast.success(`Welcome to Kelvora! Workspace "${orgName || "Enterprise Workspace"}" is ready.`);
         navigate({ to: "/dashboard", replace: true });
+        return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

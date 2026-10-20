@@ -13,6 +13,37 @@ const roleEnum = z.enum([
 ]);
 const currencyEnum = z.enum(["NGN", "USD"]);
 
+export const registerWorkspaceFn = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        fullName: z.string().min(2, "Full name must be at least 2 characters"),
+        orgName: z.string().min(2, "Company / Organization name must be at least 2 characters"),
+        email: z.string().email("Please provide a valid corporate email address"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        baseUrl: z.string().optional(),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data }) => {
+    const { registerWorkspace } = await import("@/lib/procurement.server");
+    return registerWorkspace(data);
+  });
+
+export const requestPasswordResetFn = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        email: z.string().email("Please provide a valid email address"),
+        redirectTo: z.string().optional(),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data }) => {
+    const { requestPasswordReset } = await import("@/lib/procurement.server");
+    return requestPasswordReset(data);
+  });
+
 export const bootstrapOrg = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>

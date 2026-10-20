@@ -505,6 +505,18 @@ function Onboarding() {
   const [department, setDepartment] = useState("");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data?.user;
+      if (u) {
+        const metaName = (u.user_metadata?.["full_name"] || u.user_metadata?.["name"] || "") as string;
+        const metaOrg = (u.user_metadata?.["organization_name"] || "") as string;
+        if (metaName) setFullName((prev) => prev || metaName);
+        if (metaOrg) setOrgName((prev) => prev || metaOrg);
+      }
+    });
+  }, []);
+
   const invite = useQuery({
     queryKey: ["my-invite"],
     queryFn: () => myPendingInvite(),

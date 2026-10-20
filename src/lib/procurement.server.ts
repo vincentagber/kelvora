@@ -666,6 +666,185 @@ export async function bootstrapOrganization(
   return { orgId: org.id };
 }
 
+export async function registerWorkspace(input: {
+  fullName: string;
+  orgName: string;
+  email: string;
+  password: string;
+  baseUrl?: string | undefined;
+}) {
+  const email = input.email.trim().toLowerCase();
+  const fullName = input.fullName.trim();
+  const orgName = input.orgName.trim();
+  const password = input.password.trim();
+
+  // 1. Check if an active profile with this email already belongs to an organization
+  const { data: existingProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("id, org_id")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (existingProfile?.org_id) {
+    return {
+      success: false,
+      alreadyExists: true,
+      email,
+      message: "An account with this email is already registered.",
+    };
+  }
+
+  // 2. Check if user already exists in auth.users
+  const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  const matched = (userList?.users ?? []).find((u) => u.email?.toLowerCase() === email);
+
+  let targetUserId = matched?.id;
+
+  if (targetUserId) {
+    // If user was in auth but had no organization yet, sync password & confirm email
+    const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        organization_name: orgName,
+      },
+    });
+    if (updateErr) {
+      console.warn("[registerWorkspace] Update user notice:", updateErr);
+    }
+  } else {
+    // Create new auth user with email auto-confirmed (no GoTrue 500 mail delivery issues)
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        organization_name: orgName,
+      },
+    });
+
+    if (createError) {
+      const errMsg = createError.message.toLowerCase();
+      if (
+        errMsg.includes("already") ||
+        errMsg.includes("exists") ||
+        (createError as any).status === 422 ||
+        (createError as any).code === "email_exists"
+      ) {
+        return {
+          success: false,
+          alreadyExists: true,
+          email,
+          message: "An account with this email is already registered.",
+        };
+      }
+      throw new Error(createError.message);
+    }
+
+    targetUserId = newUser.user.id;
+  }
+
+  // 3. Bootstrap organization, profile, roles, default rules, and default project
+  const bootstrapResult = await bootstrapOrganization(targetUserId, email, {
+    orgName,
+    fullName,
+  });
+
+  // 4. Send non-blocking welcome email via transactional mailer (Brevo/SMTP)
+  try {
+    const { sendTransactionalEmail } = await import("./notifications");
+    const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "https://kelvora.onrender.com").replace(/\/$/, "");
+    sendTransactionalEmail({
+      to: email,
+      subject: `Welcome to Kelvora — ${orgName} Workspace Created`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; color: #0B1457;">
+          <div style="margin-bottom: 24px;">
+            <span style="font-size: 24px; font-weight: 800; color: #0001FF; letter-spacing: -0.5px;">KELVORA</span>
+          </div>
+          <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 16px; color: #0B1457;">Welcome to Kelvora, ${fullName}!</h1>
+          <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px;">
+            Your enterprise procurement workspace <strong>${orgName}</strong> is ready. You have full administrator permissions to create purchase requisitions, set approval thresholds, and invite your team.
+          </p>
+          <div style="margin-bottom: 32px;">
+            <a href="${baseUrl}/dashboard" style="background-color: #0001FF; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">
+              Go to Workspace Dashboard
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+            If you did not initiate this registration, please contact support at support@kelvora.com.
+          </p>
+        </div>
+      `,
+    }).catch((err) => console.warn("[registerWorkspace] Welcome email non-blocking notice:", err));
+  } catch (err) {
+    // Non-blocking
+  }
+
+  return {
+    success: true,
+    alreadyExists: false,
+    orgId: bootstrapResult.orgId,
+    userId: targetUserId,
+    email,
+  };
+}
+
+export async function requestPasswordReset(input: { email: string; redirectTo?: string | undefined }) {
+  const email = input.email.trim().toLowerCase();
+  const redirectTo = input.redirectTo || `${process.env["APP_BASE_URL"] || "https://kelvora.onrender.com"}/reset-password`;
+
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) {
+      console.warn("[requestPasswordReset] generateLink warning:", error);
+      return { ok: true };
+    }
+
+    const actionLink = data?.properties?.action_link;
+    if (actionLink) {
+      const { sendTransactionalEmail } = await import("./notifications");
+      await sendTransactionalEmail({
+        to: email,
+        subject: "Reset your Kelvora password",
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; color: #0B1457;">
+            <div style="margin-bottom: 24px;">
+              <span style="font-size: 24px; font-weight: 800; color: #0001FF; letter-spacing: -0.5px;">KELVORA</span>
+            </div>
+            <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 16px; color: #0B1457;">Password Recovery</h1>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px;">
+              We received a request to reset your Kelvora password. Click the button below to choose a new password. This link is valid for 60 minutes.
+            </p>
+            <div style="margin-bottom: 32px;">
+              <a href="${actionLink}" style="background-color: #0001FF; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            <p style="font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+              If you didn't request a password reset, you can safely ignore this email.
+            </p>
+          </div>
+        `,
+      }).catch((err) => console.warn("[requestPasswordReset] Send email error:", err));
+    }
+  } catch (err) {
+    console.warn("[requestPasswordReset] Error:", err);
+  }
+
+  return { ok: true };
+}
+
+
 export async function setMemberRoles(
   actorUserId: string,
   input: { targetUserId: string; roles: Role[] },
