@@ -18,6 +18,35 @@ export type Actor = {
   roles: Role[];
 };
 
+/**
+ * Looks up a Supabase auth user by email using the GoTrue admin endpoint.
+ * Returns the user's UUID or undefined if not found.
+ * This is an O(1) targeted query — it does NOT scan all users.
+ */
+async function findAuthUserIdByEmail(email: string): Promise<string | undefined> {
+  const SUPABASE_URL = process.env["SUPABASE_URL"];
+  const SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return undefined;
+
+  try {
+    // GoTrue admin API supports ?email= filter for direct O(1) lookup.
+    const url = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}&per_page=1&page=1`;
+    const resp = await fetch(url, {
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+    });
+    if (!resp.ok) return undefined;
+    const body = await resp.json() as { users?: { id: string; email?: string }[] };
+    const match = (body.users ?? []).find((u) => u.email?.toLowerCase() === email);
+    return match?.id;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Loads the caller's org + roles. Never trusts client-supplied identity. */
 export async function loadActor(userId: string): Promise<Actor> {
   const { data: profile, error } = await supabaseAdmin
@@ -678,7 +707,7 @@ export async function registerWorkspace(input: {
   const orgName = input.orgName.trim();
   const password = input.password.trim();
 
-  // 1. Check if an active profile with this email already belongs to an organization
+  // 1. Check if a profile with this email already belongs to an organization
   const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
     .select("id, org_id")
@@ -694,14 +723,18 @@ export async function registerWorkspace(input: {
     };
   }
 
-  // 2. Check if user already exists in auth.users
-  const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const matched = (userList?.users ?? []).find((u) => u.email?.toLowerCase() === email);
+  // 2. Look up auth.users by email directly — O(1) targeted query, no page-size cap.
+  //    If the profile exists without an org (partial signup), we already have its id.
+  //    Otherwise hit the GoTrue admin endpoint with an email filter.
+  let targetUserId: string | undefined = existingProfile?.id;
 
-  let targetUserId = matched?.id;
+  if (!targetUserId) {
+    targetUserId = await findAuthUserIdByEmail(email);
+  }
 
   if (targetUserId) {
-    // If user was in auth but had no organization yet, sync password & confirm email
+    // User exists in auth but has no org yet — sync their password & confirm email so they can
+    // sign in immediately after workspace creation.
     const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
       password,
       email_confirm: true,
@@ -714,7 +747,7 @@ export async function registerWorkspace(input: {
       console.warn("[registerWorkspace] Update user notice:", updateErr);
     }
   } else {
-    // Create new auth user with email auto-confirmed (no GoTrue 500 mail delivery issues)
+    // Brand-new user: create with email auto-confirmed so no verification email is needed.
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -727,23 +760,38 @@ export async function registerWorkspace(input: {
 
     if (createError) {
       const errMsg = createError.message.toLowerCase();
+      // If we lost a race and the account was created between our lookup and now,
+      // perform one targeted lookup by email to recover the user id and continue.
       if (
         errMsg.includes("already") ||
         errMsg.includes("exists") ||
         (createError as any).status === 422 ||
         (createError as any).code === "email_exists"
       ) {
-        return {
-          success: false,
-          alreadyExists: true,
-          email,
-          message: "An account with this email is already registered.",
-        };
+        const racedUserId = await findAuthUserIdByEmail(email);
+        if (racedUserId) {
+          targetUserId = racedUserId;
+          // Sync password so the just-supplied credentials work immediately.
+          await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+            password,
+            email_confirm: true,
+            user_metadata: { full_name: fullName, organization_name: orgName },
+          }).catch((e) => console.warn("[registerWorkspace] Post-race password sync notice:", e));
+        } else {
+          // Could not recover; surface as "already exists" so the UI guides the user.
+          return {
+            success: false,
+            alreadyExists: true,
+            email,
+            message: "An account with this email is already registered.",
+          };
+        }
+      } else {
+        throw new Error(createError.message);
       }
-      throw new Error(createError.message);
+    } else {
+      targetUserId = newUser!.user.id;
     }
-
-    targetUserId = newUser.user.id;
   }
 
   // 3. Bootstrap organization, profile, roles, default rules, and default project
@@ -2166,11 +2214,17 @@ export async function createSubUser(
     throw new Error("That email is already assigned to a different organization.");
   }
 
-  // 2. Create or sync user in Supabase Auth via admin API
+  // 2. Create or sync user in Supabase Auth via admin API.
+  //    We look up by email first (O(1) targeted query) so we never hit the 422
+  //    "already exists" error path or require an O(n) listUsers scan.
   let targetUserId = existingProfile?.id;
 
+  if (!targetUserId) {
+    targetUserId = await findAuthUserIdByEmail(email);
+  }
+
   if (targetUserId) {
-    // If the user profile already exists in this organization, update auth password and metadata so credentials work immediately
+    // User already exists in auth — sync password & metadata so credentials work immediately.
     await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
       password: temporaryPassword,
       email_confirm: true,
@@ -2179,7 +2233,7 @@ export async function createSubUser(
         organization_name: actor.fullName,
       },
     }).catch((err) => {
-      console.warn("[createSubUser] Auth password update notice for existing profile:", err);
+      console.warn("[createSubUser] Auth password update notice:", err);
     });
   } else {
     const { data: authCreated, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
@@ -2201,20 +2255,16 @@ export async function createSubUser(
         (createAuthError as any).code === "email_exists";
 
       if (isAlreadyRegistered) {
-        const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-        const matched = (userList?.users ?? []).find((u) => u.email?.toLowerCase() === email);
-        if (matched) {
-          targetUserId = matched.id;
-          // Synchronize password so credentials work immediately
+        // Lost a creation race — recover via targeted email lookup.
+        const racedUserId = await findAuthUserIdByEmail(email);
+        if (racedUserId) {
+          targetUserId = racedUserId;
           await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
             password: temporaryPassword,
             email_confirm: true,
-            user_metadata: {
-              full_name: fullName,
-              organization_name: actor.fullName,
-            },
+            user_metadata: { full_name: fullName, organization_name: actor.fullName },
           }).catch((err) => {
-            console.warn("[createSubUser] Auth password update notice for matched user:", err);
+            console.warn("[createSubUser] Post-race password sync notice:", err);
           });
         } else {
           throw new Error(`Authentication user setup failed: ${createAuthError.message}`);

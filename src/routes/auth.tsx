@@ -144,7 +144,7 @@ function AuthPage() {
         navigate({ to: "/dashboard", replace: true });
         return;
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (error) throw error;
         toast.success("Welcome back!");
         navigate({ to: "/dashboard", replace: true });
