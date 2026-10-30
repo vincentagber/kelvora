@@ -12,30 +12,19 @@ export interface StepperProps {
   onStepChange?: (step: number) => void;
 }
 
-export const Stepper = ({
-  labels,
-  currentStep,
-  completedSteps,
-  onStepChange,
-}: StepperProps) => {
+export const Stepper = ({ labels, currentStep, completedSteps, onStepChange }: StepperProps) => {
   const totalSteps = labels.length;
-  const isStepCompleted = (step: number) =>
-    completedSteps.includes(step);
-  const isStepActive = (step: number) =>
-    step === currentStep && !isStepCompleted(step);
-  const isStepUpcoming = (step: number) =>
-    step > currentStep && !isStepCompleted(step);
+  const isStepCompleted = (step: number) => completedSteps.includes(step);
+  const isStepActive = (step: number) => step === currentStep && !isStepCompleted(step);
+  const isStepUpcoming = (step: number) => step > currentStep && !isStepCompleted(step);
 
   return (
-    <ol
-      role="list"
-      className="flex flex-wrap gap-2 justify-center py-4 overflow-x-auto"
-    >
+    <ol role="list" className="flex flex-wrap gap-2 justify-center py-4 overflow-x-auto">
       {labels.map((label, index) => {
         const stepNumber = index + 1;
-        const isCompleted = isStepCompleted(index);
-        const isActive = isStepActive(index);
-        const isUpcoming = isStepUpcoming(index);
+        const isCompleted = isStepCompleted(stepNumber);
+        const isActive = isStepActive(stepNumber);
+        const isUpcoming = isStepUpcoming(stepNumber);
 
         const getClasses = () => {
           if (isCompleted) {
