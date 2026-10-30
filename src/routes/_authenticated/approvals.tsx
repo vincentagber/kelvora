@@ -26,6 +26,7 @@ import {
 } from "@/lib/procurement.functions";
 import { money, shortDate, ROLE_LABELS } from "@/lib/format";
 import { PageHeader, EmptyState, StatusPill } from "@/components/kelvora/bits";
+import { Stepper } from "@/components/stepper/Stepper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AttachmentThumbs } from "@/components/kelvora/AttachmentThumbs";
@@ -181,6 +182,12 @@ function Approvals() {
         <PageHeader
           title="Approvals"
           subtitle="Requests routed to your role by your organization's threshold rules."
+        />
+        <Stepper
+          labels={["Submission", "Review", "Approval", "Completion"]}
+          currentStep={liveOrder.size > 0 ? liveOrder.values().next().value || 1 : 1}
+          completedSteps={steps.filter((s) => s.status !== "pending").map((s) => s.step_order)}
+          onStepChange={(step) => console.log("Step changed to:", step)}
         />
       </motion.div>
 
