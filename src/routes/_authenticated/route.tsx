@@ -1,0 +1,609 @@
+import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import {
+  ClipboardList,
+  CheckSquare,
+  Send,
+  ReceiptText,
+  Truck,
+  FolderKanban,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  ShieldAlert,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LayoutDashboard,
+  Building2,
+  Receipt,
+  Pencil,
+} from "lucide-react";
+
+import { supabase } from "@/integrations/supabase/client";
+import { useMe, can, type AppRole } from "@/lib/useMe";
+import { bootstrapOrg, myPendingInvite, acceptInviteFn } from "@/lib/procurement.functions";
+import { myOrgAccessFn, amIPlatformAdmin } from "@/lib/platform.functions";
+import { ROLE_LABELS } from "@/lib/format";
+import { NotificationBell } from "@/components/kelvora/notifications";
+import { UserAvatar } from "@/components/kelvora/UserAvatar";
+import { ProfileEditDialog } from "@/components/kelvora/ProfileEditDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import { cn } from "@/lib/utils";
+import { AnimatedPageWrapper } from "@/components/ui/animated";
+
+export const Route = createFileRoute("/_authenticated")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw redirect({ to: "/auth" });
+    return { user: data.user };
+  },
+  component: AppLayout,
+});
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles: readonly AppRole[] | null;
+  badgeKey?: "pendingApprovals";
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: "Main Menu",
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: null },
+      { to: "/requisitions", label: "Requisitions", icon: ClipboardList, roles: null },
+      {
+        to: "/approvals",
+        label: "Approvals",
+        icon: CheckSquare,
+        roles: ["approver", "finance", "executive", "admin"],
+        badgeKey: "pendingApprovals",
+      },
+      { to: "/projects", label: "Projects / Cost Centers", icon: FolderKanban, roles: null },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      {
+        to: "/rfqs",
+        label: "RFQs & Quotes",
+        icon: Send,
+        roles: ["procurement_officer", "finance", "executive", "admin"],
+      },
+      {
+        to: "/purchase-orders",
+        label: "Purchase Orders",
+        icon: ReceiptText,
+        roles: ["procurement_officer", "finance", "executive", "admin"],
+      },
+      {
+        to: "/deliveries",
+        label: "Deliveries & Inspection",
+        icon: Truck,
+        roles: null,
+      },
+      {
+        to: "/invoices",
+        label: "Invoices & 3-Way Match",
+        icon: Receipt,
+        roles: ["procurement_officer", "finance", "executive", "admin"],
+      },
+      {
+        to: "/suppliers",
+        label: "Suppliers Directory",
+        icon: Building2,
+        roles: ["procurement_officer", "finance", "admin"],
+      },
+    ],
+  },
+  {
+    title: "General",
+    items: [{ to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] }],
+  },
+];
+
+function AppLayout() {
+  const me = useMe();
+  const [open, setOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("sidebar_collapsed", String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        toggleCollapsed();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleCollapsed]);
+
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const access = useQuery({ queryKey: ["org-access"], queryFn: () => myOrgAccessFn() });
+  const platform = useQuery({
+    queryKey: ["platform-admin-gate"],
+    queryFn: () => amIPlatformAdmin(),
+  });
+
+  const pendingApprovalsQuery = useQuery({
+    queryKey: ["sidebar-pending-approvals-count", me.data?.userId],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("approval_steps")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      return count ?? 0;
+    },
+    enabled: !!me.data?.userId,
+    staleTime: 30000,
+  });
+  const pendingApprovalsCount = pendingApprovalsQuery.data ?? 0;
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+
+  if (me.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Loading your workspace…
+      </div>
+    );
+  }
+
+  if (!me.data?.profile?.org_id) {
+    return <Onboarding />;
+  }
+
+  if (access.data?.suspended) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <ShieldAlert className="mx-auto h-8 w-8 text-signal" aria-hidden />
+          <h1 className="page-title mt-3 text-3xl">Account suspended</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Access to {access.data.orgName ?? "this workspace"} is paused. All of your data is
+            safely retained and returns the moment the account is reactivated — contact Kelvora to
+            sort it out.
+          </p>
+          <Button onClick={signOut} variant="outline" className="mt-5">
+            Sign out
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const watchesSuppliers = can(me.data?.roles, ["procurement_officer", "admin"]);
+
+  return (
+    <div className="min-h-screen bg-[#F8F9FB] text-foreground antialiased md:flex">
+      {/* Mobile Top Header */}
+      <header className="flex items-center justify-between border-b border-[#162070] bg-[#0B1457] px-4 py-3 md:hidden">
+        <div className="flex items-center">
+          <img
+            src="/logo-kelvora-white.png"
+            alt="Kelvora"
+            className="h-7 w-auto object-contain"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {watchesSuppliers ? <NotificationBell /> : null}
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/12 hover:border-white/20 hover:text-white transition-all shadow-xs"
+          >
+            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
+      </header>
+
+      {/* Sleek Dark Left Sidebar Navigation (Brand: #0B1457 base, #0001FF active) with Collapse Support */}
+      <aside
+        className={cn(
+          "z-30 border-r border-[#162070] bg-[#0B1457] py-5 transition-all duration-300 md:sticky md:top-0 md:h-screen md:shrink-0 md:flex md:flex-col md:justify-between",
+          collapsed ? "px-2.5 md:w-20" : "px-3.5 md:w-64",
+          open ? "block" : "hidden md:flex",
+        )}
+      >
+        <div>
+          {/* Brand Header & Sidebar Toggle */}
+          <div className="px-1 pb-4">
+            {collapsed ? (
+              <div className="flex flex-col items-center gap-2.5">
+                <Link
+                  to="/dashboard"
+                  title="Kelvora Dashboard"
+                  className="flex items-center justify-center rounded-lg focus:outline-hidden focus:ring-2 focus:ring-[#0001FF]"
+                >
+                  <img
+                    src="/apple-touch-icon.png"
+                    alt="Kelvora"
+                    className="h-8 w-8 rounded-lg object-contain shadow-xs ring-1 ring-white/10 hover:ring-white/30 transition-all"
+                  />
+                </Link>
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={toggleCollapsed}
+                    title="Expand sidebar (⌘B)"
+                    aria-label="Expand sidebar"
+                    className="group flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/12 hover:border-white/20 hover:text-white transition-all shadow-xs cursor-pointer active:scale-95 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-400/50"
+                  >
+                    <PanelLeftOpen className="h-4 w-4 transition-transform group-hover:scale-105" />
+                  </button>
+                  {watchesSuppliers ? <NotificationBell /> : null}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <Link
+                  to="/dashboard"
+                  className="flex items-center rounded-lg focus:outline-hidden focus:ring-2 focus:ring-[#0001FF]"
+                >
+                  <img
+                    src="/logo-kelvora-white.png"
+                    alt="Kelvora"
+                    className="h-8 w-auto object-contain transition-opacity hover:opacity-95"
+                  />
+                </Link>
+                <div className="hidden md:flex items-center gap-1.5">
+                  {watchesSuppliers ? <NotificationBell /> : null}
+                  <button
+                    type="button"
+                    onClick={toggleCollapsed}
+                    title="Collapse sidebar (⌘B)"
+                    aria-label="Collapse sidebar"
+                    className="group flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/12 hover:border-white/20 hover:text-white transition-all shadow-xs cursor-pointer active:scale-95 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-400/50"
+                  >
+                    <PanelLeftClose className="h-4 w-4 transition-transform group-hover:scale-105" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Sections Categorized (Main Menu, Operations, General) */}
+          <nav className={cn(collapsed ? "space-y-4" : "space-y-5")}>
+            {NAV_SECTIONS.map((section, idx) => {
+              const visibleItems = section.items.filter(
+                (item) => !item.roles || can(me.data?.roles, [...item.roles]),
+              );
+              const hasItems = visibleItems.length > 0 || section.title === "General";
+              if (!hasItems) return null;
+
+              return (
+                <div key={section.title} className={cn(collapsed ? "space-y-1.5" : "space-y-1")}>
+                  {/* Category Header (or subtle divider when collapsed) */}
+                  {collapsed ? (
+                    idx > 0 ? (
+                      <div className="h-px bg-white/10 my-2.5 mx-1.5" />
+                    ) : null
+                  ) : (
+                    <div className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-white/40 select-none">
+                      {section.title}
+                    </div>
+                  )}
+
+                  <div className={cn(collapsed ? "space-y-1.5" : "space-y-1")}>
+                    {visibleItems.map((item) => {
+                      const badgeCount =
+                        item.badgeKey === "pendingApprovals" ? pendingApprovalsCount : 0;
+
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setOpen(false)}
+                          title={collapsed ? item.label : undefined}
+                          activeProps={{
+                            className: "bg-[#0001FF] text-white font-medium shadow-xs",
+                          }}
+                          inactiveProps={{
+                            className:
+                              "text-white/70 hover:bg-white/10 hover:text-white font-normal",
+                          }}
+                          className={cn(
+                            "group flex items-center rounded-xl text-xs transition-all",
+                            collapsed
+                              ? "h-10 w-10 mx-auto justify-center p-0"
+                              : "justify-between px-3 py-2.5 min-h-[38px]",
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <item.icon
+                              className="h-4 w-4 shrink-0 transition-colors group-hover:text-white"
+                              aria-hidden
+                            />
+                            {!collapsed && <span className="truncate">{item.label}</span>}
+                          </div>
+
+                          {!collapsed && badgeCount > 0 && (
+                            <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+                              {badgeCount}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+
+                    {/* Add Log out into General category section */}
+                    {section.title === "General" && (
+                      <button
+                        type="button"
+                        onClick={signOut}
+                        title={collapsed ? "Log out" : undefined}
+                        className={cn(
+                          "group w-full flex items-center rounded-xl text-xs text-white/70 hover:bg-red-500/15 hover:text-red-200 transition-all cursor-pointer",
+                          collapsed
+                            ? "h-10 w-10 mx-auto justify-center p-0"
+                            : "gap-3 px-3 py-2.5 min-h-[38px]",
+                        )}
+                      >
+                        <LogOut className="h-4 w-4 shrink-0 text-white/60 group-hover:text-red-300 transition-colors" />
+                        {!collapsed && <span>Log out</span>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Platform Admin in General / Standalone */}
+            {platform.data?.isPlatformAdmin ? (
+              <div className="pt-2">
+                {!collapsed && (
+                  <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400/60 select-none">
+                    Platform
+                  </div>
+                )}
+                <Link
+                  to="/platform-admin"
+                  onClick={() => setOpen(false)}
+                  title={collapsed ? "Platform Admin" : undefined}
+                  className={cn(
+                    "flex items-center rounded-xl border border-amber-500/30 text-xs font-semibold text-amber-400 hover:bg-amber-500/10 transition-colors",
+                    collapsed
+                      ? "h-10 w-10 mx-auto justify-center p-0"
+                      : "gap-3 px-3 py-2.5 min-h-[38px]",
+                  )}
+                >
+                  <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
+                  {!collapsed && <span>Platform Admin</span>}
+                </Link>
+              </div>
+            ) : null}
+          </nav>
+        </div>
+
+        {/* User Profile Footer */}
+        <div className="mt-4 border-t border-[#162070] pt-3.5">
+          {collapsed ? (
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setEditProfileOpen(true)}
+                title={`Edit Profile: ${me.data.profile?.full_name || "User"} (${me.data.email})`}
+                className="group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[#0001FF]"
+              >
+                <UserAvatar
+                  name={me.data.profile?.full_name}
+                  email={me.data.email}
+                  avatarUrl={me.data.profile?.avatar_url}
+                  size="sm"
+                  className="h-8 w-8 transition-transform group-hover:scale-105"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={signOut}
+                title="Log out"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 hover:bg-red-500/20 hover:text-red-300 transition-colors cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-1 rounded-xl p-1 hover:bg-white/5 transition-colors">
+              <button
+                type="button"
+                onClick={() => setEditProfileOpen(true)}
+                title="Click to edit your name and profile picture"
+                className="group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 text-left transition-colors cursor-pointer focus:outline-hidden"
+              >
+                <UserAvatar
+                  name={me.data.profile?.full_name}
+                  email={me.data.email}
+                  avatarUrl={me.data.profile?.avatar_url}
+                  size="sm"
+                  className="h-8 w-8 transition-transform group-hover:scale-105"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-white group-hover:text-blue-200 transition-colors">
+                    {me.data.profile?.full_name || "User"}
+                  </p>
+                  <p className="truncate text-[10px] text-white/50">{me.data.email}</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={signOut}
+                title="Log out"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-red-500/20 hover:text-red-300 transition-colors cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content Area (Clean White & High Contrast) */}
+      <main className="min-w-0 flex-1 bg-[#F8F9FB] px-4 py-6 md:px-8 md:py-7 overflow-x-hidden">
+        <AnimatedPageWrapper>
+          <Outlet />
+        </AnimatedPageWrapper>
+      </main>
+
+      <ProfileEditDialog open={editProfileOpen} onOpenChange={setEditProfileOpen} />
+    </div>
+  );
+}
+
+function Onboarding() {
+  const me = useMe();
+  const queryClient = useQueryClient();
+  const [orgName, setOrgName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [department, setDepartment] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data?.user;
+      if (u) {
+        const metaName = (u.user_metadata?.["full_name"] || u.user_metadata?.["name"] || "") as string;
+        const metaOrg = (u.user_metadata?.["organization_name"] || "") as string;
+        if (metaName) setFullName((prev) => prev || metaName);
+        if (metaOrg) setOrgName((prev) => prev || metaOrg);
+      }
+    });
+  }, []);
+
+  const invite = useQuery({
+    queryKey: ["my-invite"],
+    queryFn: () => myPendingInvite(),
+  });
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      if (invite.data) {
+        await acceptInviteFn({
+          data: { fullName, ...(department ? { department } : {}) },
+        });
+        toast.success(`You've joined ${invite.data.orgName}.`);
+      } else {
+        await bootstrapOrg({ data: { orgName, fullName, ...(department ? { department } : {}) } });
+        toast.success("Workspace ready. Default approval thresholds have been set up for you.");
+      }
+      await queryClient.invalidateQueries();
+      await me.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "We couldn't finish setup.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (invite.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Checking your invitations…
+      </div>
+    );
+  }
+
+  const joining = !!invite.data;
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-surface px-5 py-10">
+      <div className="w-full max-w-lg rounded-lg border border-border border-t-4 border-t-signal bg-card p-6">
+        <h1 className="page-title text-foreground">
+          {joining ? `Join ${invite.data!.orgName}` : "Set up your organization"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {joining
+            ? `You've been invited as ${invite.data!.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}. Confirm your details to join the team.`
+            : "Everything you create stays private to this organization. You'll be its Admin, and we'll start you with sensible approval thresholds you can edit any time in Settings."}
+        </p>
+        <form onSubmit={submit} className="mt-5 space-y-4">
+          {joining ? null : (
+            <div className="space-y-1.5">
+              <Label htmlFor="org">Company name</Label>
+              <Input
+                id="org"
+                required
+                className="h-12"
+                placeholder="e.g. Landmark Developments Ltd"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Your full name</Label>
+            <Input
+              id="name"
+              required
+              className="h-12"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dept">Department (optional)</Label>
+            <Input
+              id="dept"
+              className="h-12"
+              placeholder="e.g. Projects"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={busy} className="h-12 w-full">
+            {busy ? "Please wait…" : joining ? "Join team" : "Create workspace"}
+          </Button>
+        </form>
+      </div>
+    </main>
+  );
+}

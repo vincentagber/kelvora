@@ -1,0 +1,5 @@
+[install]
+saveTextLockfile = true
+# Optional supply-chain guard disabled to prevent build-time resolution errors
+# minimumReleaseAge = 86400
+

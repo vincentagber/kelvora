@@ -1,0 +1,255 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Kelvora enterprise B2B design system.
+ * Typography: Inter across entire application with high-precision tabular numerals (tnum) for financial and audit data.
+ * Brand: Deep Navy #0B1457 (primary), Electric Blue #0001FF (accent).
+ */
+
+@theme inline {
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-ring-offset-background: var(--background);
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  /* Executive Brand Palette: Deep Navy #0B1457 & Electric Blue #0001FF */
+  --primary: #0b1457;
+  --primary-foreground: #ffffff;
+  --secondary: #eff3ff;
+  --secondary-foreground: #0b1457;
+  --muted: #f1f5f9;
+  --muted-foreground: #4b556d;
+  --accent: #0001ff;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #0b1457;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #0001ff;
+  --signal: #0001ff;
+  --signal-foreground: #ffffff;
+  --surface: #f8fafc;
+  --surface-foreground: #0b1457;
+  --sidebar: #0b1457;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-accent: #0001ff;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #162070;
+  --sidebar-primary: #0001ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #0001ff;
+}
+
+.dark {
+  --background: #0b0f19;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --card-foreground: #f8fafc;
+  --popover: #111827;
+  --popover-foreground: #f8fafc;
+  --primary: #ffffff;
+  --primary-foreground: #0b1457;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #10b981;
+  --success-foreground: #0f172a;
+  --warning: #f59e0b;
+  --warning-foreground: #0f172a;
+  --border: #1e293b;
+  --input: #334155;
+  --ring: #3b82f6;
+  --signal: #3b82f6;
+  --signal-foreground: #ffffff;
+  --surface: #1e293b;
+  --surface-foreground: #f8fafc;
+  --sidebar: #090d1a;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1e293b;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #3b82f6;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  ::selection {
+    background-color: #eff3ff;
+    color: #0001ff;
+  }
+
+  /* Custom Smooth Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings:
+      "cv02" 1,
+      "cv03" 1,
+      "cv04" 1,
+      "cv11" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Universal Tabular Numerals for Financial Data, Numbers, and Currency */
+  .tabular-nums,
+  table,
+  td,
+  th,
+  .kpi-number,
+  .font-mono,
+  input[type="number"],
+  [data-tabular="true"] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      "tnum" 1,
+      "zero" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+  }
+}
+
+@utility page-title {
+  font-family: var(--font-sans);
+  font-size: 1.375rem; /* 22px */
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+@utility card-header {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #334155;
+}
+
+@utility kpi-metric {
+  font-size: 1.75rem; /* 28px */
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  color: #0f172a;
+}
+
+@utility micro-meta {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 400;
+  color: #64748b;
+}
+
+@utility data-label {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 500;
+  color: #64748b;
+}
+
+@utility tap-row {
+  min-height: 2.75rem;
+}
+
+@utility glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
