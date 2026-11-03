@@ -21,27 +21,43 @@ export type Actor = {
 /**
  * Looks up a Supabase auth user by email using the GoTrue admin endpoint.
  * Returns the user's UUID or undefined if not found.
- * This is an O(1) targeted query — it does NOT scan all users.
+ * This is an O(1) targeted query with fallback to protect against race conditions.
  */
 async function findAuthUserIdByEmail(email: string): Promise<string | undefined> {
-  const SUPABASE_URL = process.env["SUPABASE_URL"];
+  const SUPABASE_URL =
+    process.env["SUPABASE_URL"] ||
+    process.env["VITE_SUPABASE_URL"] ||
+    process.env["NEXT_PUBLIC_SUPABASE_URL"];
   const SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return undefined;
+  const normalized = email.trim().toLowerCase();
 
+  if (SUPABASE_URL && SERVICE_ROLE_KEY) {
+    try {
+      const cleanUrl = SUPABASE_URL.replace(/\/$/, "");
+      // GoTrue admin API supports ?email= query filter for direct O(1) lookup
+      const url = `${cleanUrl}/auth/v1/admin/users?email=${encodeURIComponent(normalized)}&per_page=1&page=1`;
+      const resp = await fetch(url, {
+        headers: {
+          apikey: SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+      });
+      if (resp.ok) {
+        const body = (await resp.json()) as { users?: { id: string; email?: string }[] };
+        const match = (body.users ?? []).find((u) => u.email?.toLowerCase() === normalized);
+        if (match?.id) return match.id;
+      }
+    } catch (e) {
+      console.warn("[findAuthUserIdByEmail] Direct endpoint lookup notice:", e);
+    }
+  }
+
+  // Resilient fallback via admin SDK in case custom query param is not supported by GoTrue instance
   try {
-    // GoTrue admin API supports ?email= filter for direct O(1) lookup.
-    const url = `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}&per_page=1&page=1`;
-    const resp = await fetch(url, {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-    });
-    if (!resp.ok) return undefined;
-    const body = await resp.json() as { users?: { id: string; email?: string }[] };
-    const match = (body.users ?? []).find((u) => u.email?.toLowerCase() === email);
-    return match?.id;
+    const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
+    const matched = (userList?.users ?? []).find((u) => u.email?.toLowerCase() === normalized);
+    return matched?.id;
   } catch {
     return undefined;
   }
@@ -645,7 +661,7 @@ const DEFAULT_RULES = [
 export async function bootstrapOrganization(
   userId: string,
   email: string,
-  input: { orgName: string; fullName: string; department?: string | undefined },
+  input: { orgName: string; fullName: string; department?: string | undefined; sendWelcomeEmail?: boolean; baseUrl?: string },
 ) {
   const existing = await supabaseAdmin
     .from("profiles")
@@ -691,6 +707,23 @@ export async function bootstrapOrganization(
   await supabaseAdmin
     .from("projects")
     .insert({ org_id: org.id, name: "General / unassigned", location: null });
+
+  if (input.sendWelcomeEmail && email) {
+    try {
+      const { dispatchWelcomeNotification } = await import("./notifications");
+      await Promise.race([
+        dispatchWelcomeNotification({
+          recipientEmail: email,
+          recipientName: input.fullName,
+          orgName: input.orgName,
+          baseUrl: input.baseUrl,
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+      ]);
+    } catch (e) {
+      console.warn("[bootstrapOrganization] Welcome email notice:", e);
+    }
+  }
 
   return { orgId: org.id };
 }
@@ -800,35 +833,21 @@ export async function registerWorkspace(input: {
     fullName,
   });
 
-  // 4. Send non-blocking welcome email via transactional mailer (Brevo/SMTP)
+  // 4. Send welcome email via resilient transactional mailer (SMTP + Brevo fallback)
   try {
-    const { sendTransactionalEmail } = await import("./notifications");
+    const { dispatchWelcomeNotification } = await import("./notifications");
     const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "https://kelvora.onrender.com").replace(/\/$/, "");
-    sendTransactionalEmail({
-      to: email,
-      subject: `Welcome to Kelvora — ${orgName} Workspace Created`,
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; color: #0B1457;">
-          <div style="margin-bottom: 24px;">
-            <span style="font-size: 24px; font-weight: 800; color: #0001FF; letter-spacing: -0.5px;">KELVORA</span>
-          </div>
-          <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 16px; color: #0B1457;">Welcome to Kelvora, ${fullName}!</h1>
-          <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px;">
-            Your enterprise procurement workspace <strong>${orgName}</strong> is ready. You have full administrator permissions to create purchase requisitions, set approval thresholds, and invite your team.
-          </p>
-          <div style="margin-bottom: 32px;">
-            <a href="${baseUrl}/dashboard" style="background-color: #0001FF; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">
-              Go to Workspace Dashboard
-            </a>
-          </div>
-          <p style="font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 16px;">
-            If you did not initiate this registration, please contact support at support@kelvora.com.
-          </p>
-        </div>
-      `,
-    }).catch((err) => console.warn("[registerWorkspace] Welcome email non-blocking notice:", err));
+    await Promise.race([
+      dispatchWelcomeNotification({
+        recipientEmail: email,
+        recipientName: fullName,
+        orgName,
+        baseUrl,
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+    ]);
   } catch (err) {
-    // Non-blocking
+    console.warn("[registerWorkspace] Welcome email notice:", err);
   }
 
   return {

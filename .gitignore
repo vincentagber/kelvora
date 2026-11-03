@@ -29,6 +29,7 @@ dist-ssr
 # Next.js & Build outputs
 .next/
 out/
+.netlify/
 .temp/
 supabase/.temp/
 tsconfig.tsbuildinfo

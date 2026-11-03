@@ -5,6 +5,7 @@ import {
   dispatchApprovalNotification,
   dispatchPoAwardNotification,
   dispatchTeamInvitationNotification,
+  dispatchWelcomeNotification,
   sendTransactionalEmail,
 } from "./notifications.ts";
 
@@ -305,6 +306,19 @@ describe("Critical Bugs Resolution: Core Domain & System Tests", () => {
 
       assert.equal(res.success, true);
       assert.equal(res.recipient, "sales@lafarge.ng");
+      assert.ok(["EMAIL", "CONSOLE"].includes(res.channel));
+    });
+
+    it("dispatches automated welcome emails to newly registered workspace owners", async () => {
+      const res = await dispatchWelcomeNotification({
+        recipientEmail: "owner@lagosenergy.com",
+        recipientName: "Babatunde Adeleke",
+        orgName: "Lagos Energy Infrastructure Ltd",
+        baseUrl: "https://kelvora.onrender.com",
+      });
+
+      assert.equal(res.success, true);
+      assert.equal(res.recipient, "owner@lagosenergy.com");
       assert.ok(["EMAIL", "CONSOLE"].includes(res.channel));
     });
 

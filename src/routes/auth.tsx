@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -70,6 +71,7 @@ const DEMO_PRESETS = [
 
 function AuthPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -141,11 +143,13 @@ function AuthPage() {
         }
 
         toast.success(`Welcome to Kelvora! Workspace "${orgName || "Enterprise Workspace"}" is ready.`);
+        queryClient.clear();
         navigate({ to: "/dashboard", replace: true });
         return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (error) throw error;
+        queryClient.clear();
         toast.success("Welcome back!");
         navigate({ to: "/dashboard", replace: true });
       }

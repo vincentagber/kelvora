@@ -58,7 +58,7 @@ export const bootstrapOrg = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { bootstrapOrganization } = await import("@/lib/procurement.server");
     const email = (context.claims.email as string | undefined) ?? "";
-    return bootstrapOrganization(context.userId, email, data);
+    return bootstrapOrganization(context.userId, email, { ...data, sendWelcomeEmail: true });
   });
 
 export const updateMemberRoles = createServerFn({ method: "POST" })

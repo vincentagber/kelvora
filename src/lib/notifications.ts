@@ -132,27 +132,38 @@ export async function dispatchTermiiMessage(input: {
 /**
  * Core transactional email dispatcher.
  * Supports:
- * - Supabase Email Delivery (via Edge Function or Supabase SMTP)
- * - Resend HTTP API
- * - Console simulation for development / testing environments
+ * - Direct SMTP (cPanel / Hostinger / standard mail server over port 465 SSL)
+ * - Brevo (Sendinblue) HTTP API Driver (Over standard HTTPS port 443)
+ * - Supabase Email Delivery (via Edge Function)
+ * - Automatic seamless fallback across configured providers
+ * - Safe development console mode
  */
 export async function sendTransactionalEmail(
   payload: GenericEmailPayload,
 ): Promise<NotificationDispatchResult> {
   const emailDriver = (process.env["EMAIL_DRIVER"] || "smtp").toLowerCase();
   const fromEmail = process.env["EMAIL_FROM"] || "Kelvora <kelvora@useprocurely.com>";
-  const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+  const supabaseUrl =
+    process.env["SUPABASE_URL"] ||
+    process.env["VITE_SUPABASE_URL"] ||
+    process.env["NEXT_PUBLIC_SUPABASE_URL"];
   const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
-  // 1. Direct SMTP Driver (cPanel, standard mail server, or custom SMTP)
-  const smtpHost = process.env["SMTP_HOST"] || "162.254.39.203";
-  const smtpUser = process.env["SMTP_USER"] || "kelvora@useprocurely.com";
-  const smtpPass = process.env["SMTP_PASS"] || "B[vw~J}7K=qHz?mX";
-  const smtpPort = Number(process.env["SMTP_PORT"] || 465);
-  const smtpSecure = process.env["SMTP_SECURE"] === "false" ? false : smtpPort === 465;
-  let providerError: string | undefined;
+  const errors: string[] = [];
 
-  if ((emailDriver === "smtp" || emailDriver === "supabase") && smtpHost && smtpUser && smtpPass) {
+  // 1. Direct SMTP Delivery
+  const trySmtp = async (): Promise<NotificationDispatchResult | null> => {
+    const smtpHost = process.env["SMTP_HOST"] || "162.254.39.203";
+    const smtpUser = process.env["SMTP_USER"] || "kelvora@useprocurely.com";
+    const smtpPass = process.env["SMTP_PASS"] || "B[vw~J}7K=qHz?mX";
+    const smtpPort = Number(process.env["SMTP_PORT"] || 465);
+    const smtpSecure = process.env["SMTP_SECURE"] === "false" ? false : smtpPort === 465;
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      errors.push("SMTP credentials incomplete");
+      return null;
+    }
+
     try {
       const nodemailer = await import("nodemailer");
       const transporter = nodemailer.createTransport({
@@ -186,14 +197,21 @@ export async function sendTransactionalEmail(
         recipient: payload.to,
       };
     } catch (e) {
-      console.error("[Notification Engine] Direct SMTP delivery failed:", e);
-      providerError = e instanceof Error ? e.message : String(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[Notification Engine] Direct SMTP delivery failed:", msg);
+      errors.push(`SMTP error: ${msg}`);
+      return null;
     }
-  }
+  };
 
-  // 2. Brevo (Sendinblue) HTTP API Driver (Over standard HTTPS port 443 — supported on Render)
-  const brevoApiKey = process.env["BREVO_API_KEY"];
-  if ((emailDriver === "brevo" || (!smtpPass && brevoApiKey)) && brevoApiKey) {
+  // 2. Brevo (Sendinblue) HTTP API Delivery
+  const tryBrevo = async (): Promise<NotificationDispatchResult | null> => {
+    const brevoApiKey = process.env["BREVO_API_KEY"];
+    if (!brevoApiKey) {
+      errors.push("BREVO_API_KEY not configured");
+      return null;
+    }
+
     try {
       let senderName = "Kelvora";
       let senderEmail = "kelvora@useprocurely.com";
@@ -228,13 +246,9 @@ export async function sendTransactionalEmail(
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error("[Notification Engine] Brevo delivery error:", errText);
-        return {
-          success: false,
-          channel: "EMAIL",
-          recipient: payload.to,
-          error: errText,
-        };
+        console.warn(`[Notification Engine] Brevo delivery error (${response.status}):`, errText);
+        errors.push(`Brevo error (${response.status}): ${errText}`);
+        return null;
       }
 
       const resData = (await response.json()) as { messageId?: string };
@@ -245,18 +259,16 @@ export async function sendTransactionalEmail(
         recipient: payload.to,
       };
     } catch (e) {
-      console.error("[Notification Engine] Brevo HTTP call failed:", e);
-      return {
-        success: false,
-        channel: "EMAIL",
-        recipient: payload.to,
-        error: String(e),
-      };
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[Notification Engine] Brevo HTTP call failed:", msg);
+      errors.push(`Brevo error: ${msg}`);
+      return null;
     }
-  }
+  };
 
-  // 2. Supabase Edge Function Driver (send-email hook / edge function)
-  if (emailDriver === "supabase" && supabaseUrl && serviceRoleKey) {
+  // 3. Supabase Edge Function Delivery
+  const trySupabase = async (): Promise<NotificationDispatchResult | null> => {
+    if (!supabaseUrl || !serviceRoleKey) return null;
     try {
       const edgeUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/send-email`;
       const response = await fetch(edgeUrl, {
@@ -284,10 +296,51 @@ export async function sendTransactionalEmail(
           recipient: payload.to,
         };
       }
+      const errText = await response.text().catch(() => "");
+      errors.push(`Supabase edge error: ${errText}`);
+      return null;
     } catch (e) {
-      console.warn("[Notification Engine] Supabase edge function unavailable, falling back to console:", e);
-      providerError = e instanceof Error ? e.message : String(e);
+      errors.push(`Supabase edge error: ${String(e)}`);
+      return null;
     }
+  };
+
+  // Dispatch according to priority with automatic resilient failover
+  let result: NotificationDispatchResult | null = null;
+
+  if (emailDriver === "brevo") {
+    // 1. Try Brevo first
+    result = await tryBrevo();
+    // 2. If Brevo failed (e.g. 401 unrecognised IP or rate limit), fail over to SMTP
+    if (!result) {
+      console.log("[Notification Engine] Brevo unavailable, failing over to direct SMTP...");
+      result = await trySmtp();
+    }
+    // 3. If SMTP also failed, try Supabase Edge
+    if (!result) {
+      result = await trySupabase();
+    }
+  } else if (emailDriver === "supabase") {
+    result = await trySupabase();
+    if (!result) result = await trySmtp();
+    if (!result) result = await tryBrevo();
+  } else if (emailDriver === "console") {
+    // Explicit console testing mode requested
+  } else {
+    // Default: try direct SMTP first
+    result = await trySmtp();
+    // If SMTP failed (e.g. port 465 blocked on cloud), fail over to Brevo over port 443
+    if (!result) {
+      console.log("[Notification Engine] SMTP unavailable, failing over to Brevo...");
+      result = await tryBrevo();
+    }
+    if (!result) {
+      result = await trySupabase();
+    }
+  }
+
+  if (result) {
+    return result;
   }
 
   // Never treat console output as delivery in production or log credential emails there.
@@ -296,17 +349,21 @@ export async function sendTransactionalEmail(
       success: false,
       channel: "EMAIL",
       recipient: payload.to,
-      error: providerError || "No configured email provider accepted the message.",
+      error: errors.join(" | ") || "No configured email provider accepted the message.",
     };
   }
 
-  // 3. Fallback: Console Logging with full payload details for local dev & testing
+  // Fallback: Console Logging with full payload details for local dev & testing
   console.log(`\n================== [NOTIFICATIONS DISPATCH: EMAIL (${emailDriver.toUpperCase()})] ==================`);
   console.log(`From:    ${fromEmail}`);
   console.log(`To:      ${payload.to}`);
   console.log(`Subject: ${payload.subject}`);
   console.log(`--- Content Preview ---`);
   console.log(payload.text || payload.html.replace(/<[^>]+>/g, " ").slice(0, 300));
+  if (errors.length) {
+    console.log(`--- Driver Fallback Notes ---`);
+    console.log(errors.join("\n"));
+  }
   console.log(`========================================================================\n`);
 
   return {
@@ -318,6 +375,7 @@ export async function sendTransactionalEmail(
       subject: payload.subject,
       recipient: payload.to,
       driver: emailDriver,
+      errors,
     },
   };
 }
@@ -485,5 +543,62 @@ export async function dispatchTeamInvitationNotification(
     subject: `You've been invited to join ${params.orgName} on Kelvora`,
     html,
     text: `You've been invited to join ${params.orgName} on Kelvora as ${params.roles.join(", ")}. Sign in: ${inviteUrl}`,
+  });
+}
+
+/**
+ * Dispatches a welcoming notification to a newly registered user with their workspace details
+ */
+export async function dispatchWelcomeNotification(params: {
+  recipientEmail: string;
+  recipientName: string;
+  orgName: string;
+  baseUrl?: string | undefined;
+}): Promise<NotificationDispatchResult> {
+  const baseUrl = (params.baseUrl || process.env["APP_BASE_URL"] || "https://kelvora.onrender.com").replace(/\/$/, "");
+  const dashboardUrl = `${baseUrl}/dashboard`;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #ffffff; color: #0B1457;">
+      <div style="margin-bottom: 24px; border-bottom: 2px solid #0001FF; padding-bottom: 16px;">
+        <span style="font-size: 24px; font-weight: 800; color: #0001FF; letter-spacing: -0.5px;">KELVORA</span>
+        <div style="font-size: 12px; color: #64748B; margin-top: 4px;">Enterprise Procurement Operating System</div>
+      </div>
+
+      <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 16px; color: #0B1457;">
+        Welcome to Kelvora, ${params.recipientName}!
+      </h1>
+
+      <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+        Your enterprise procurement workspace <strong>${params.orgName}</strong> is provisioned and ready for operations.
+      </p>
+
+      <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
+        <div style="font-size: 13px; font-weight: 600; color: #0B1457; margin-bottom: 8px;">What you can do next:</div>
+        <ul style="font-size: 13px; color: #475569; margin: 0; padding-left: 20px; line-height: 1.8;">
+          <li>Create spend requisitions and project cost centers</li>
+          <li>Set up threshold approval rules and segregation-of-duties matrix</li>
+          <li>Issue RFQs and compare supplier bids side-by-side</li>
+          <li>Invite teammates with specific operational and financial roles</li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 28px;">
+        <a href="${dashboardUrl}" style="background-color: #0001FF; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">
+          Go to Workspace Dashboard
+        </a>
+      </div>
+
+      <p style="font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 16px; line-height: 1.5;">
+        You received this email because your account was created on Kelvora. If you did not initiate this registration, please contact our security team immediately at support@kelvora.com.
+      </p>
+    </div>
+  `;
+
+  return sendTransactionalEmail({
+    to: params.recipientEmail,
+    subject: `Welcome to Kelvora — ${params.orgName} Workspace Ready`,
+    html,
+    text: `Welcome to Kelvora, ${params.recipientName}! Your procurement workspace "${params.orgName}" is ready. Access your dashboard: ${dashboardUrl}`,
   });
 }
