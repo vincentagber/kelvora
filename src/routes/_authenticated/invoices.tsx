@@ -119,6 +119,26 @@ function normalizeReceipts(po: PurchaseOrderSummary | null): DeliveryReceiptSumm
   return [po.delivery_receipts];
 }
 
+const DEMO_PO = {
+  id: "demo-po-parity-0042",
+  po_number: "PO-2026-0042",
+  total_amount: 4850000,
+  settlement_currency: "NGN",
+  supplier_id: "demo-supplier-1",
+  suppliers: {
+    name: "Atlantic Turbines & Spares Ltd",
+    tax_id: "10982341-0001",
+  },
+  delivery_receipts: [
+    {
+      id: "grn-demo-1",
+      status: "inspected",
+      delivery_note_ref: "GRN-2026-0042",
+      delivered_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    },
+  ],
+};
+
 function InvoicesPage() {
   const me = useMe();
   const queryClient = useQueryClient();
@@ -206,7 +226,8 @@ function InvoicesPage() {
 
       await createInvoiceFn({
         data: {
-          purchaseOrderId: selectedPoId || undefined,
+          purchaseOrderId:
+            selectedPoId && selectedPoId !== DEMO_PO.id ? selectedPoId : undefined,
           invoiceNumber: invoiceNumber.trim(),
           dueDate: dueDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
           currency,
@@ -299,9 +320,18 @@ function InvoicesPage() {
     setBuyerTin("87654321-0001");
   }
 
+  // Available POs including fallback demo PO for frictionless 3-way match preview
+  const availablePos = useMemo(() => {
+    const list = pos ? [...pos] : [];
+    if (!list.some((p) => p.id === DEMO_PO.id)) {
+      list.push(DEMO_PO as any);
+    }
+    return list;
+  }, [pos]);
+
   function handlePoChange(val: string) {
     setSelectedPoId(val);
-    const po = pos?.find((p) => p.id === val);
+    const po = availablePos.find((p) => p.id === val);
     if (po) {
       setAmount(String(po.total_amount));
       setCurrency((po.settlement_currency as "NGN" | "USD") || "NGN");
@@ -316,29 +346,38 @@ function InvoicesPage() {
 
   function loadScenario(type: "matched" | "variance") {
     setIsIntakeOpen(true);
-    const firstPo = pos && pos.length > 0 ? pos[0] : null;
+    // Find target PO: prefer actual PO from database, fallback to DEMO_PO
+    const targetPo = pos && pos.length > 0 && pos[0] ? pos[0] : DEMO_PO;
+    const targetTotal = Number(targetPo.total_amount) || 4850000;
+    const targetCurrency = (targetPo.settlement_currency as "NGN" | "USD") || "NGN";
+    const rawSupp = targetPo.suppliers;
+    const supp = Array.isArray(rawSupp)
+      ? rawSupp[0]
+      : (rawSupp as { name?: string; tax_id?: string } | null);
+    const seller = supp?.name || "Atlantic Turbines & Spares Ltd";
+    const tin = supp?.tax_id || "10982341-0001";
+
+    setSelectedPoId(targetPo.id);
+    setCurrency(targetCurrency);
+    setSellerName(seller);
+    setSellerTin(tin);
+
     if (type === "matched") {
       setInvoiceNumber("INV-2026-088");
-      setAmount("4850000");
-      setCurrency("NGN");
-      setSellerName("Atlantic Turbines & Spares Ltd");
-      setSellerTin("10982341-0001");
+      setAmount(String(targetTotal));
       setDueDate(new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
-      if (firstPo) {
-        setSelectedPoId(firstPo.id);
-      }
-      toast.info("Populated standard 3-way matched scenario.");
+      toast.success(
+        `Loaded Matched Demo: ${targetPo.po_number} · 100% parity with zero price variance.`,
+      );
     } else {
       setInvoiceNumber("INV-2026-092");
-      setAmount("5200000");
-      setCurrency("NGN");
-      setSellerName("Atlantic Turbines & Spares Ltd");
-      setSellerTin("10982341-0001");
+      // Add deliberate +7.2% price variance
+      const varianceAmount = Math.round(targetTotal * 1.072);
+      setAmount(String(varianceAmount));
       setDueDate(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-      if (firstPo) {
-        setSelectedPoId(firstPo.id);
-      }
-      toast.info("Populated price variance exception scenario.");
+      toast.warning(
+        `Loaded Variance Demo: ${targetPo.po_number} · Price discrepancy flagged for audit.`,
+      );
     }
   }
 
@@ -349,7 +388,7 @@ function InvoicesPage() {
   const draftWht = draftNet * 0.02;
   const draftPayable = draftGross - draftWht;
 
-  const linkedPo = pos?.find((p) => p.id === selectedPoId);
+  const linkedPo = availablePos.find((p) => p.id === selectedPoId);
   const poTotal = linkedPo ? Number(linkedPo.total_amount) || 0 : 0;
   const draftVariance = linkedPo && draftGross > 0 ? draftGross - poTotal : 0;
   const isDraftMatch = linkedPo && draftGross > 0 && Math.abs(draftVariance) < 0.05;
@@ -656,8 +695,8 @@ function InvoicesPage() {
       {/* 4. Responsive Intake Workbench Modal */}
       <Dialog open={isIntakeOpen} onOpenChange={setIsIntakeOpen}>
         <DialogContent className="w-[95vw] sm:max-w-3xl lg:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden font-sans">
-          {/* Dialog Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 border-b border-slate-200/80 bg-slate-50/60 shrink-0">
+          {/* Dialog Header (with right padding to prevent collision with dialog close button) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 pr-14 sm:pr-16 border-b border-slate-200/80 bg-slate-50/60 shrink-0">
             <div>
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
@@ -673,23 +712,25 @@ function InvoicesPage() {
               </DialogDescription>
             </div>
 
-            <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-100/90 p-1 rounded-lg border border-slate-200/70">
+            <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto bg-slate-100/90 p-1 rounded-lg border border-slate-200/70">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1.5 hidden sm:inline select-none">
                 Quick Demo:
               </span>
               <button
                 type="button"
                 onClick={() => loadScenario("matched")}
-                className="rounded-md bg-white hover:bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-2xs border border-slate-200/80 transition-all hover:text-slate-950 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-white hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-850 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-2xs border border-slate-200/80 transition-all cursor-pointer active:scale-95"
               >
-                Matched Demo
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span>Matched Demo</span>
               </button>
               <button
                 type="button"
                 onClick={() => loadScenario("variance")}
-                className="rounded-md bg-white hover:bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-2xs border border-slate-200/80 transition-all hover:text-slate-950 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-white hover:bg-amber-50 hover:border-amber-300 hover:text-amber-850 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-2xs border border-slate-200/80 transition-all cursor-pointer active:scale-95"
               >
-                Variance Demo
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                <span>Variance Demo</span>
               </button>
             </div>
           </div>
@@ -720,14 +761,19 @@ function InvoicesPage() {
                       <SelectValue placeholder="Select PO to auto-populate terms…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {pos?.length ? (
-                        pos.map((po) => (
+                      {availablePos.length ? (
+                        availablePos.map((po) => (
                           <SelectItem key={po.id} value={po.id} className="text-xs font-medium">
                             <span className="font-semibold text-slate-900">{po.po_number}</span>
                             <span className="text-slate-500 mx-1.5">—</span>
                             <span className="tabular-nums font-medium text-slate-700">
                               {money(po.total_amount, po.settlement_currency as "NGN" | "USD")}
                             </span>
+                            {po.id === DEMO_PO.id && (
+                              <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+                                Demo Benchmark
+                              </span>
+                            )}
                           </SelectItem>
                         ))
                       ) : (

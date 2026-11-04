@@ -7,7 +7,6 @@ import {
   SlidersHorizontal,
   ArrowRight,
   Plus,
-  Sparkles,
   GitCommitHorizontal,
   GitFork,
   UserCheck,
@@ -132,62 +131,6 @@ export function RulesSection({
     onSuccess: async () => {
       toast.success("Threshold tier removed. Active requisitions retain their initial chain.");
       await queryClient.invalidateQueries({ queryKey: ["approval-rules"] });
-    },
-  });
-
-  const deployStandardTiers = useMutation({
-    mutationFn: async () => {
-      const orgId = me.data?.profile?.org_id;
-      if (!orgId) throw new Error("Organization ID not found.");
-
-      // Clear existing rules for this org
-      await supabase.from("approval_rules").delete().eq("org_id", orgId);
-
-      // Deploy standard Nigerian Enterprise spend limits
-      const standardTiers = [
-        {
-          org_id: orgId,
-          label: "Tier 1: Operational Spend (Below ₦500k)",
-          min_amount: 0,
-          max_amount: 500000,
-          required_roles: ["approver"] as AppRole[],
-          approval_mode: "sequential" as const,
-          extra_role_if_unbudgeted: "executive" as const,
-          sort_order: 1,
-        },
-        {
-          org_id: orgId,
-          label: "Tier 2: Mid-Range Spend (₦500k – ₦5m)",
-          min_amount: 500000,
-          max_amount: 5000000,
-          required_roles: ["approver", "finance"] as AppRole[],
-          approval_mode: "sequential" as const,
-          extra_role_if_unbudgeted: "executive" as const,
-          sort_order: 2,
-        },
-        {
-          org_id: orgId,
-          label: "Tier 3: Major CapEx (> ₦5m)",
-          min_amount: 5000000,
-          max_amount: null,
-          required_roles: ["finance", "executive"] as AppRole[],
-          approval_mode: "sequential" as const,
-          extra_role_if_unbudgeted: "admin" as const,
-          sort_order: 3,
-        },
-      ];
-
-      const { error } = await supabase.from("approval_rules").insert(standardTiers);
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      toast.success(
-        "Nigerian Enterprise Standards deployed: Below ₦500k (Dept Head) · ₦500k–₦5m (Dept + Finance) · >₦5m (Finance + CEO).",
-      );
-      await queryClient.invalidateQueries({ queryKey: ["approval-rules"] });
-    },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Failed to deploy standard tiers.");
     },
   });
 
@@ -658,24 +601,6 @@ export function RulesSection({
 
           {!showBuilder && isAdmin ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={deployStandardTiers.isPending}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Deploy standard Nigerian Enterprise approval tiers?\n\n• Below ₦500k: Department Head\n• ₦500k–₦5m: Department Head and Finance\n• Above ₦5m: Finance and CEO\n• Unbudgeted: Executive Management sign-off\n\nThis will configure all 3 tiers sequentially.",
-                    )
-                  ) {
-                    deployStandardTiers.mutate();
-                  }
-                }}
-                className="rounded-lg border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100 text-xs font-semibold text-emerald-900 gap-1.5 h-9 cursor-pointer"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Apply Nigerian Enterprise Standards</span>
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
