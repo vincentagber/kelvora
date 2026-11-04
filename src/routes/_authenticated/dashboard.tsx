@@ -9,29 +9,13 @@ import {
   CreditCard,
   Wallet,
   Clock,
-  ShieldAlert,
   ChevronDown,
   CheckCircle2,
   ExternalLink,
   Plus,
-  Building2,
-  Layers,
-  PieChart,
-  FolderKanban,
   ArrowRight,
-  Sparkles,
   Timer,
-  ShieldCheck,
-  AlertTriangle,
   FileText,
-  Landmark,
-  User,
-  RefreshCw,
-  SlidersHorizontal,
-  Download,
-  X,
-  FileSpreadsheet,
-  Check,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -49,28 +33,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  ForensicGovernanceEmblemIcon,
-  GovernanceVerifiedBadgeIcon,
-} from "@/components/kelvora/ProductDesignerIcons";
-import {
-  MdPolicy,
-  MdSecurity,
-  MdVerified,
-  MdVerifiedUser,
-  MdRadar,
-  MdFactCheck,
-  MdTune,
-  MdCallSplit,
-  MdHub,
-} from "react-icons/md";
-import { FaArrowsRotate } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
-import {
-  detectSplitRequisitionAnomalies,
-  detectBuyerSupplierAffinityAnomalies,
-  calculateManagementKpis,
-} from "@/lib/governanceAnomalies";
+import { calculateManagementKpis } from "@/lib/governanceAnomalies";
 import {
   motion,
   AnimatePresence,
@@ -116,15 +80,6 @@ function Dashboard() {
     purchaseOrders: any[];
     requisitions: any[];
   } | null>(null);
-
-  // Forensic Governance Audit Suite state (§FR-4.5, §FR-8.5)
-  const [isForensicModalOpen, setIsForensicModalOpen] = useState(false);
-  const [selectedForensicAnomaly, setSelectedForensicAnomaly] = useState<any | null>(null);
-  const [forensicThreshold, setForensicThreshold] = useState(500000); // ₦500,000 threshold
-  const [forensicWindowDays, setForensicWindowDays] = useState(7);
-  const [concentrationThreshold, setConcentrationThreshold] = useState(40); // 40% vendor concentration
-  const [forensicTab, setForensicTab] = useState<"ALL" | "SPLIT" | "AFFINITY">("ALL");
-  const [isScanning, setIsScanning] = useState(false);
 
   const orgId = me.data?.profile?.org_id;
 
@@ -325,53 +280,6 @@ function Dashboard() {
   });
 
   const canApprove = can(me.data?.roles, ["approver", "finance", "executive", "admin"]);
-  const canViewGovernance = can(me.data?.roles, ["executive", "admin", "finance"]);
-
-  // Calculate real-time governance anomalies from loaded requisitions
-  const splitAnomalies = detectSplitRequisitionAnomalies(
-    (data?.requisitions ?? []).map((r: any) => ({
-      id: r.id,
-      reference: r.reference,
-      requesterId: (r as { requester_id?: string }).requester_id || "req-01",
-      requesterName:
-        r.requester_id === me.data?.userId
-          ? me.data?.profile?.full_name || "Procurement Initiator"
-          : "Site Engineer / Buyer",
-      projectId: (r as { project_id?: string }).project_id || "proj-01",
-      projectName:
-        (r as { projects?: { name?: string } }).projects?.name || "Lekki Coastal Highway Tower A",
-      amount: Number(r.total_amount),
-      currency: r.currency || "NGN",
-      createdAt: r.created_at,
-    })),
-    {
-      thresholdAmount: forensicThreshold,
-      windowDays: forensicWindowDays,
-    },
-  );
-
-  // Calculate Buyer-Supplier Affinity Anomalies
-  const awardsData = allPOs.map((po: any) => {
-    const isLowest = po.recommended_quote_id ? po.quote_id === po.recommended_quote_id : true;
-    return {
-      rfqId: po.rfq_id || po.id,
-      poId: po.id,
-      poNumber: po.po_number || "PO",
-      buyerId: po.issued_by || "buyer_default",
-      buyerName: "Procurement Officer",
-      supplierId: po.supplier_id || "supp_default",
-      supplierName: po.suppliers?.name || "Supplier",
-      amount: Number(po.total_amount || 0),
-      awardedAt: po.issued_at || po.created_at || new Date().toISOString(),
-      isLowestQuote: isLowest,
-      quotesCount: 3,
-      justificationProvided: po.override_reason,
-    };
-  });
-  const affinityAnomalies = detectBuyerSupplierAffinityAnomalies(awardsData, {
-    concentrationThresholdPercent: concentrationThreshold,
-  });
-  const allGovernanceAnomalies = [...splitAnomalies, ...affinityAnomalies];
 
   // Calculate Management Velocity & Spend KPIs (FR-8.1 - FR-8.4)
   const poKpiData = allPOs.map((po: any) => ({
