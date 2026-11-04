@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type {} from "@tanstack/react-start";
 
 const BASE_URL = process.env["APP_BASE_URL"] || "https://kelvora.onrender.com";
 

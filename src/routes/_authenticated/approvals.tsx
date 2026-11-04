@@ -183,12 +183,19 @@ function Approvals() {
           title="Approvals"
           subtitle="Requests routed to your role by your organization's threshold rules."
         />
-        <Stepper
-          labels={["Submission", "Review", "Approval", "Completion"]}
-          currentStep={liveOrder.size > 0 ? liveOrder.values().next().value || 1 : 1}
-          completedSteps={steps.filter((s) => s.status !== "pending").map((s) => s.step_order)}
-          onStepChange={(step) => console.log("Step changed to:", step)}
-        />
+        <div className="mt-4">
+          <Stepper
+            labels={["Submission", "Review", "Approval", "Completion"]}
+            currentStep={Math.min(
+              Math.max(1, liveOrder.size > 0 ? liveOrder.values().next().value || 1 : 1),
+              4,
+            )}
+            completedSteps={steps
+              .filter((s) => s.status !== "pending")
+              .map((s) => Math.min(s.step_order, 4))}
+            onStepChange={(step) => console.log("Navigating to stage:", step)}
+          />
+        </div>
       </motion.div>
 
       {isLoading ? (

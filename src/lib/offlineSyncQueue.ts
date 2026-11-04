@@ -85,13 +85,6 @@ export function updateQueuedDelivery(id: string, updates: Partial<QueuedDelivery
   }
 }
 
-export function clearSyncedDeliveries(): void {
-  const pending = getQueuedDeliveries().filter((item) => !item.synced);
-  if (typeof window !== "undefined") {
-    localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(pending));
-  }
-}
-
 /** Batch syncs all pending offline deliveries to server */
 export async function syncOfflineDeliveriesBatch(
   syncHandler: (record: QueuedDeliveryRecord) => Promise<{ success: boolean; error?: string }>,

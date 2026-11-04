@@ -29,6 +29,7 @@ import {
 } from "@/lib/procurement.functions";
 import { money, shortDate, dateTime, ROLE_LABELS, STATUS_LABELS } from "@/lib/format";
 import { PageHeader, StatusPill } from "@/components/kelvora/bits";
+import { Stepper } from "@/components/stepper/Stepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -299,7 +300,21 @@ function RequisitionDetail() {
               )}
             </div>
             {data.steps.length ? (
-              <ol className="mt-3.5 space-y-3">
+              <div className="mt-3.5 space-y-3">
+                <Stepper
+                  labels={data.steps.map((s) => ROLE_LABELS[s.required_role] ?? s.required_role)}
+                  currentStep={
+                    data.steps.findIndex((s) => s.status === "pending") !== -1
+                      ? data.steps.findIndex((s) => s.status === "pending") + 1
+                      : data.steps.every((s) => s.status === "approved")
+                        ? data.steps.length
+                        : 1
+                  }
+                  completedSteps={data.steps
+                    .map((s, idx) => (s.status === "approved" ? idx + 1 : null))
+                    .filter((v): v is number => v !== null)}
+                />
+                <ol className="space-y-3">
                 {data.steps.map((step) => {
                   const isPending = step.status === "pending";
                   const canDecide = isPending && can(me.data?.roles, [step.required_role, "admin"]);
@@ -387,6 +402,7 @@ function RequisitionDetail() {
                   );
                 })}
               </ol>
+            </div>
             ) : (
               <p className="mt-2 text-xs text-slate-500">
                 Not submitted yet — the chain is generated from your organization's threshold rules

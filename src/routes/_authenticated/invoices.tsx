@@ -30,6 +30,7 @@ import {
 } from "@/lib/procurement.functions";
 import { validateNrsVatInputCreditEligibility, generateUblPeppolJson } from "@/lib/nrsEInvoice";
 import { money, shortDate } from "@/lib/format";
+import { Stepper } from "@/components/stepper/Stepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -423,45 +424,24 @@ function InvoicesPage() {
         </div>
       </div>
 
-      {/* 2. Tripartite Matching Overview Strip */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs">
-              01
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-900">Purchase Order</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Approved line-item quantity and contracted unit rate.
-              </p>
-            </div>
+      {/* 2. Tripartite Matching Chevron Stepper */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex items-center justify-between text-xs">
+          <div>
+            <h2 className="font-semibold text-slate-900">3-Way Tripartite Matching Pipeline</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Reconciles approved PO rate, physical GRN delivery, and supplier billed tax invoice.
+            </p>
           </div>
-
-          <div className="flex items-start gap-3 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs">
-              02
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-900">Delivery Receipt (GRN)</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Warehouse receiving confirmation and inspection sign-off.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs">
-              03
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-900">Supplier Invoice</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                NRS TIN validation, 7.5% VAT, and 2% statutory WHT.
-              </p>
-            </div>
-          </div>
+          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200">
+            NRS PEPPOL BIS 3.0
+          </span>
         </div>
+        <Stepper
+          labels={["1. Purchase Order (PO)", "2. Goods Receipt (GRN)", "3. Invoice Reconciliation"]}
+          currentStep={3}
+          completedSteps={[1, 2]}
+        />
       </div>
 
       {/* 3. Accounts Payable Reconciliation Register */}

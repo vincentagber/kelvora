@@ -15,6 +15,7 @@ import {
 } from "@/lib/procurement.functions";
 import { money, ROLE_LABELS } from "@/lib/format";
 import { PageHeader } from "@/components/kelvora/bits";
+import { Stepper } from "@/components/stepper/Stepper";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -556,7 +557,13 @@ function NewRequisition() {
                     {chain.mode === "parallel" ? "parallel clearance" : "sequential clearance"}
                   </span>
                 </p>
-                <ol className="mt-3 space-y-2">
+                <div className="mt-3 space-y-3">
+                  <Stepper
+                    labels={chain.steps.map((step) => ROLE_LABELS[step.role] ?? step.role)}
+                    currentStep={1}
+                    completedSteps={[]}
+                  />
+                  <ol className="space-y-2">
                   {chain.steps.map((step, index) => (
                     <li key={index} className="flex items-start gap-2.5 text-xs">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0B1457] text-[10px] font-semibold text-white">
@@ -572,6 +579,7 @@ function NewRequisition() {
                     </li>
                   ))}
                 </ol>
+              </div>
               </>
             ) : (
               <p className="mt-2 text-xs text-slate-400">

@@ -15,6 +15,7 @@ import {
 
 import { getApprovalTokenDetailsFn, decideApprovalByTokenFn } from "@/lib/procurement.functions";
 import { money, shortDate } from "@/lib/format";
+import { Stepper } from "@/components/stepper/Stepper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -144,6 +145,17 @@ function TokenApprovalPage() {
             <span className="sm:hidden">Secure</span>
           </div>
         </header>
+
+        {/* Clearance Lifecycle Stepper */}
+        <div className="pb-1">
+          <Stepper
+            labels={["1. Review Request", "2. Authority Decision", "3. Audit Confirmed"]}
+            currentStep={isDecided || requisition.status !== "pending_approval" ? 3 : 2}
+            completedSteps={
+              isDecided || requisition.status !== "pending_approval" ? [1, 2, 3] : [1]
+            }
+          />
+        </div>
 
         {isDecided || requisition.status !== "pending_approval" ? (
           <div className="rounded-2xl border border-slate-200/80 bg-white p-8 sm:p-10 text-center space-y-4 shadow-xs">

@@ -7,6 +7,7 @@ import { logSecurityEventFn } from "@/lib/security.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Stepper } from "@/components/stepper/Stepper";
 import { AlertCircle, CheckCircle2, LockKeyhole } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
@@ -190,7 +191,7 @@ function ResetPasswordPage() {
 
   if (done) {
     return (
-      <Shell title="Password updated">
+      <Shell title="Password updated" currentStep={3} completedSteps={[1, 2, 3]}>
         <div className="text-center py-4 space-y-3">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
             <CheckCircle2 className="h-6 w-6" />
@@ -209,7 +210,7 @@ function ResetPasswordPage() {
 
   if (!ready) {
     return (
-      <Shell title="Validating Security Link">
+      <Shell title="Validating Security Link" currentStep={1} completedSteps={[]}>
         <div className="flex flex-col items-center justify-center py-8 gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0B1457] border-t-transparent" />
           <p className="text-xs text-muted-foreground">Verifying authorization token…</p>
@@ -220,7 +221,7 @@ function ResetPasswordPage() {
 
   if (!validLink) {
     return (
-      <Shell title="Link Expired or Invalid">
+      <Shell title="Link Expired or Invalid" currentStep={1} completedSteps={[]}>
         <div className="space-y-4 pt-2">
           <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
@@ -232,7 +233,10 @@ function ResetPasswordPage() {
               </p>
             </div>
           </div>
-          <Button className="h-11 w-full bg-[#0B1457] hover:bg-[#0001FF] text-xs font-semibold" onClick={() => navigate({ to: "/auth" })}>
+          <Button
+            className="h-11 w-full bg-[#0B1457] hover:bg-[#0001FF] text-xs font-semibold"
+            onClick={() => navigate({ to: "/auth" })}
+          >
             Request Fresh Reset Link
           </Button>
         </div>
@@ -241,7 +245,7 @@ function ResetPasswordPage() {
   }
 
   return (
-    <Shell title="Set a New Password">
+    <Shell title="Set a New Password" currentStep={2} completedSteps={[1]}>
       <p className="mt-1 text-xs text-slate-500">
         Choose a secure password for <strong>{email ?? "your account"}</strong> (minimum 6 characters).
       </p>
@@ -292,23 +296,34 @@ function ResetPasswordPage() {
   );
 }
 
-function Shell({ title, children }: { title: string; children: React.ReactNode }) {
+function Shell({
+  title,
+  currentStep = 1,
+  completedSteps = [],
+  children,
+}: {
+  title: string;
+  currentStep?: number;
+  completedSteps?: number[];
+  children: React.ReactNode;
+}) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center mb-6">
+      <div className="w-full max-w-md space-y-4">
+        <div className="flex items-center justify-center mb-4">
           <Link
             to="/auth"
             className="inline-block transition-transform duration-200 hover:scale-[1.03]"
             title="Kelvora"
           >
-            <img
-              src="/logo-kelvora.png"
-              alt="Kelvora"
-              className="h-10 w-auto object-contain"
-            />
+            <img src="/logo-kelvora.png" alt="Kelvora" className="h-10 w-auto object-contain" />
           </Link>
         </div>
+        <Stepper
+          labels={["Verify Link", "Set Password", "Sign In"]}
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+        />
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xs">
           <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">{title}</h1>
           {children}

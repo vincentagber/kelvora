@@ -191,52 +191,6 @@ export async function createSecureActionToken(input: {
   return { rawToken, expiresAt };
 }
 
-/** Verifies and atomically consumes a secure action token */
-export async function verifyAndConsumeActionToken(
-  rawToken: string,
-  expectedAction: "approve_requisition" | "reject_requisition" | "submit_quote" | "acknowledge_po",
-) {
-  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-  const now = new Date().toISOString();
-
-  // Atomically claim the token: only succeeds if used_at is NULL and not expired
-  const { data: updatedRecord, error: updateError } = await supabaseAdmin
-    .from("secure_action_tokens")
-    .update({ used_at: now })
-    .eq("token_hash", tokenHash)
-    .is("used_at", null)
-    .gt("expires_at", now)
-    .select("*")
-    .maybeSingle();
-
-  if (updateError) throw new Error(`Token verification failure: ${updateError.message}`);
-
-  if (updatedRecord) {
-    if (updatedRecord.action_type !== expectedAction) {
-      throw new Error(`Action mismatch: token was issued for [${updatedRecord.action_type}].`);
-    }
-    return updatedRecord;
-  }
-
-  // If atomic update returned 0 rows, determine exact root cause for detailed feedback
-  const { data: existing } = await supabaseAdmin
-    .from("secure_action_tokens")
-    .select("*")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (!existing) throw new Error("Invalid or expired action link.");
-  if (existing.used_at) throw new Error("This action link has already been used.");
-  if (new Date(existing.expires_at).getTime() < Date.now()) {
-    throw new Error("This action link has expired. Please request a new link.");
-  }
-  if (existing.action_type !== expectedAction) {
-    throw new Error(`Action mismatch: token was issued for [${existing.action_type}].`);
-  }
-
-  throw new Error("This action link is no longer valid.");
-}
-
 /**
  * Retrieves the requisition details and pending step for a given secure action token.
  * Used by the public /approve/[token] page for 1-click Email & WhatsApp approvals.
@@ -308,7 +262,8 @@ export async function getApprovalTokenDetails(rawToken: string) {
     .eq("id", reqId)
     .maybeSingle();
 
-  if (reqError || !req) return { status: "INVALID" as const, error: "Requisition details not found." };
+  if (reqError || !req)
+    return { status: "INVALID" as const, error: "Requisition details not found." };
 
   // Fetch requester profile explicitly by ID to avoid PostgREST schema relationship errors
   const { data: requesterProfile } = await supabaseAdmin
@@ -450,7 +405,9 @@ export async function decideApprovalByToken(
   }
 
   if (!actorUserId) {
-    throw new Error("No active user profile in this organization could be resolved to record the decision.");
+    throw new Error(
+      "No active user profile in this organization could be resolved to record the decision.",
+    );
   }
 
   // Execute approval
@@ -543,7 +500,8 @@ export async function generateStepApprovalLinks(stepId: string, originUrl?: stri
 
   const reqObj = req as any;
   const projectName = reqObj.projects?.name || "General Project Site";
-  const requesterName = requesterProfile?.full_name || reqObj.profiles?.full_name || "Project Engineer";
+  const requesterName =
+    requesterProfile?.full_name || reqObj.profiles?.full_name || "Project Engineer";
   const amountFormatted = `₦${Number(req.total_amount).toLocaleString("en-NG")}`;
 
   const whatsappMessage = [
@@ -661,7 +619,13 @@ const DEFAULT_RULES = [
 export async function bootstrapOrganization(
   userId: string,
   email: string,
-  input: { orgName: string; fullName: string; department?: string | undefined; sendWelcomeEmail?: boolean; baseUrl?: string },
+  input: {
+    orgName: string;
+    fullName: string;
+    department?: string | undefined;
+    sendWelcomeEmail?: boolean;
+    baseUrl?: string;
+  },
 ) {
   const existing = await supabaseAdmin
     .from("profiles")
@@ -805,11 +769,13 @@ export async function registerWorkspace(input: {
         if (racedUserId) {
           targetUserId = racedUserId;
           // Sync password so the just-supplied credentials work immediately.
-          await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
-            password,
-            email_confirm: true,
-            user_metadata: { full_name: fullName, organization_name: orgName },
-          }).catch((e) => console.warn("[registerWorkspace] Post-race password sync notice:", e));
+          await supabaseAdmin.auth.admin
+            .updateUserById(targetUserId, {
+              password,
+              email_confirm: true,
+              user_metadata: { full_name: fullName, organization_name: orgName },
+            })
+            .catch((e) => console.warn("[registerWorkspace] Post-race password sync notice:", e));
         } else {
           // Could not recover; surface as "already exists" so the UI guides the user.
           return {
@@ -836,7 +802,11 @@ export async function registerWorkspace(input: {
   // 4. Send welcome email via resilient transactional mailer (SMTP + Brevo fallback)
   try {
     const { dispatchWelcomeNotification } = await import("./notifications");
-    const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "https://kelvora.onrender.com").replace(/\/$/, "");
+    const baseUrl = (
+      input.baseUrl ||
+      process.env["APP_BASE_URL"] ||
+      "https://kelvora.onrender.com"
+    ).replace(/\/$/, "");
     await Promise.race([
       dispatchWelcomeNotification({
         recipientEmail: email,
@@ -859,9 +829,14 @@ export async function registerWorkspace(input: {
   };
 }
 
-export async function requestPasswordReset(input: { email: string; redirectTo?: string | undefined }) {
+export async function requestPasswordReset(input: {
+  email: string;
+  redirectTo?: string | undefined;
+}) {
   const email = input.email.trim().toLowerCase();
-  const redirectTo = input.redirectTo || `${process.env["APP_BASE_URL"] || "https://kelvora.onrender.com"}/reset-password`;
+  const redirectTo =
+    input.redirectTo ||
+    `${process.env["APP_BASE_URL"] || "https://kelvora.onrender.com"}/reset-password`;
 
   try {
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
@@ -910,7 +885,6 @@ export async function requestPasswordReset(input: { email: string; redirectTo?: 
 
   return { ok: true };
 }
-
 
 export async function setMemberRoles(
   actorUserId: string,
@@ -1399,18 +1373,6 @@ export async function recommendation(rfqId: string) {
   return compliant.reduce((best, q) =>
     Number(q.total_amount) < Number(best.total_amount) ? q : best,
   );
-}
-
-// Org-scoped wrapper: never let a caller read another organization's bid data.
-export async function recommendationForUser(userId: string, rfqId: string) {
-  const actor = await loadActor(userId);
-  const { data: rfq } = await supabaseAdmin
-    .from("rfqs")
-    .select("id, org_id")
-    .eq("id", rfqId)
-    .maybeSingle();
-  if (!rfq || rfq.org_id !== actor.orgId) throw new Error("RFQ not found.");
-  return recommendation(rfqId);
 }
 
 export async function awardQuote(
@@ -2118,12 +2080,18 @@ export async function resendRfqInvitation(
 
 /* ---------- Foundations: team invitations & projects ---------- */
 
-export async function inviteTeammate(actorUserId: string, input: { email: string; roles: Role[]; baseUrl?: string | undefined }) {
+export async function inviteTeammate(
+  actorUserId: string,
+  input: { email: string; roles: Role[]; baseUrl?: string | undefined },
+) {
   const actor = await loadActor(actorUserId);
   requireRole(actor, ["admin"]);
   const email = input.email.trim().toLowerCase();
   const roles = input.roles.length ? input.roles : (["requester"] as Role[]);
-  const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
+  const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(
+    /\/$/,
+    "",
+  );
   const inviteUrl = `${baseUrl}/auth`;
 
   const { data: existingProfile } = await supabaseAdmin
@@ -2220,7 +2188,10 @@ export async function createSubUser(
   const roles = input.roles && input.roles.length ? input.roles : (["requester"] as Role[]);
   const fullName = input.fullName.trim();
   const temporaryPassword = input.password?.trim() || `${randomBytes(6).toString("hex")}!Aa1`;
-  const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(/\/$/, "");
+  const baseUrl = (input.baseUrl || process.env["APP_BASE_URL"] || "http://localhost:3000").replace(
+    /\/$/,
+    "",
+  );
 
   // 1. Ensure user is not already assigned to a different organization
   const { data: existingProfile } = await supabaseAdmin
@@ -2244,26 +2215,30 @@ export async function createSubUser(
 
   if (targetUserId) {
     // User already exists in auth — sync password & metadata so credentials work immediately.
-    await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        organization_name: actor.fullName,
-      },
-    }).catch((err) => {
-      console.warn("[createSubUser] Auth password update notice:", err);
-    });
+    await supabaseAdmin.auth.admin
+      .updateUserById(targetUserId, {
+        password: temporaryPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          organization_name: actor.fullName,
+        },
+      })
+      .catch((err) => {
+        console.warn("[createSubUser] Auth password update notice:", err);
+      });
   } else {
-    const { data: authCreated, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        organization_name: actor.fullName,
+    const { data: authCreated, error: createAuthError } = await supabaseAdmin.auth.admin.createUser(
+      {
+        email,
+        password: temporaryPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          organization_name: actor.fullName,
+        },
       },
-    });
+    );
 
     if (createAuthError) {
       const isAlreadyRegistered =
@@ -2278,13 +2253,15 @@ export async function createSubUser(
         const racedUserId = await findAuthUserIdByEmail(email);
         if (racedUserId) {
           targetUserId = racedUserId;
-          await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
-            password: temporaryPassword,
-            email_confirm: true,
-            user_metadata: { full_name: fullName, organization_name: actor.fullName },
-          }).catch((err) => {
-            console.warn("[createSubUser] Post-race password sync notice:", err);
-          });
+          await supabaseAdmin.auth.admin
+            .updateUserById(targetUserId, {
+              password: temporaryPassword,
+              email_confirm: true,
+              user_metadata: { full_name: fullName, organization_name: actor.fullName },
+            })
+            .catch((err) => {
+              console.warn("[createSubUser] Post-race password sync notice:", err);
+            });
         } else {
           throw new Error(`Authentication user setup failed: ${createAuthError.message}`);
         }
@@ -2406,10 +2383,7 @@ export async function removeSubUser(actorUserId: string, targetUserId: string) {
     .eq("org_id", actor.orgId);
 
   // Disassociate profile from org
-  await supabaseAdmin
-    .from("profiles")
-    .update({ org_id: null })
-    .eq("id", targetUserId);
+  await supabaseAdmin.from("profiles").update({ org_id: null }).eq("id", targetUserId);
 
   await logAudit({
     orgId: actor.orgId,

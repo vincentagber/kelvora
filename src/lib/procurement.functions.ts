@@ -122,15 +122,6 @@ export const createRfqFn = createServerFn({ method: "POST" })
     return createRfq(context.userId, data);
   });
 
-export const getRecommendedQuote = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ rfqId: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
-    const { recommendationForUser } = await import("@/lib/procurement.server");
-    const best = await recommendationForUser(context.userId, data.rfqId);
-    return best ? { quoteId: best.id, totalAmount: Number(best.total_amount) } : null;
-  });
-
 export const awardQuoteFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
@@ -239,7 +230,13 @@ export const quoteAttachmentUrlFn = createServerFn({ method: "POST" })
 export const inviteTeammateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z.object({ email: z.string().email(), roles: z.array(roleEnum), baseUrl: z.string().optional() }).parse(raw),
+    z
+      .object({
+        email: z.string().email(),
+        roles: z.array(roleEnum),
+        baseUrl: z.string().optional(),
+      })
+      .parse(raw),
   )
   .handler(async ({ data, context }) => {
     const { inviteTeammate } = await import("@/lib/procurement.server");
