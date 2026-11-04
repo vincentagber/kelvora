@@ -19,7 +19,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, type AppRole } from "@/lib/useMe";
 import { money, ROLE_LABELS } from "@/lib/format";
-import { Stepper } from "@/components/stepper/Stepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -766,34 +765,52 @@ export function RulesSection({
                     </div>
                   </div>
 
-                  {/* Visual Clearance Pipeline Stepper */}
-                  <div className="pt-1 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-medium text-slate-400">
+                  {/* Visual Clearance Pipeline */}
+                  <div className="pt-1">
+                    <div className="flex items-center justify-between text-[11px] font-medium text-slate-400 mb-2.5">
                       <span>Required Clearance Pipeline</span>
                       <span>{rolesList.length} Sign-off Steps</span>
                     </div>
 
-                    {rolesList.length > 0 && (
-                      <Stepper
-                        labels={rolesList.map(
-                          (role) => ROLE_CONFIG[role]?.label || ROLE_LABELS[role] || role,
-                        )}
-                        currentStep={1}
-                        completedSteps={[]}
-                      />
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {rolesList.map((role, rIdx) => {
+                        const config = ROLE_CONFIG[role] ?? {
+                          label: role,
+                          shortLabel: role,
+                          roleDescription: "Sign-off authority",
+                          icon: UserCheck,
+                        };
+                        const Icon = config.icon;
 
-                    {/* Unbudgeted Escalation Clause Badge */}
-                    {rule.extra_role_if_unbudgeted && (
-                      <div className="inline-flex items-center gap-1.5 text-xs text-amber-900 bg-amber-50/90 border border-amber-200/80 rounded-lg px-2.5 py-1.5 mt-1">
-                        <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        <span className="font-medium">
-                          Unbudgeted clause: +
-                          {ROLE_CONFIG[rule.extra_role_if_unbudgeted]?.label ||
-                            ROLE_LABELS[rule.extra_role_if_unbudgeted]}
-                        </span>
-                      </div>
-                    )}
+                        return (
+                          <div key={rIdx} className="flex items-center gap-2">
+                            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-800 shadow-2xs">
+                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0B1457] text-white text-[10px] font-bold">
+                                {rIdx + 1}
+                              </span>
+                              <Icon className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                              <span className="font-medium text-slate-900">{config.label}</span>
+                            </div>
+
+                            {rIdx < rolesList.length - 1 && (
+                              <ArrowRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Unbudgeted Escalation Clause Badge */}
+                      {rule.extra_role_if_unbudgeted && (
+                        <div className="inline-flex items-center gap-1.5 ml-1 text-xs text-amber-900 bg-amber-50/90 border border-amber-200/80 rounded-lg px-2.5 py-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                          <span className="font-medium">
+                            Unbudgeted clause: +
+                            {ROLE_CONFIG[rule.extra_role_if_unbudgeted]?.label ||
+                              ROLE_LABELS[rule.extra_role_if_unbudgeted]}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

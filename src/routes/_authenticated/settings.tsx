@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useMe, can } from "@/lib/useMe";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 import { RulesSection } from "@/components/settings/RulesSection";
@@ -23,6 +23,19 @@ import { BillingSection } from "@/components/settings/BillingSection";
 import { AuditLogSection } from "@/components/settings/AuditLogSection";
 import { NdpaComplianceSection } from "@/components/settings/NdpaComplianceSection";
 import { ProfileSection } from "@/components/settings/ProfileSection";
+import { Stepper } from "@/components/stepper/Stepper";
+
+const SETTINGS_TABS = [
+  { id: "rules", label: "Approval Rules", icon: <SlidersHorizontal className="h-3.5 w-3.5" /> },
+  { id: "team", label: "Team & Permissions", icon: <Users className="h-3.5 w-3.5" /> },
+  { id: "delegations", label: "Delegations (FR-2.6)", icon: <UserCheck className="h-3.5 w-3.5" /> },
+  { id: "billing", label: "Subscription & Billing", icon: <CreditCard className="h-3.5 w-3.5" /> },
+  { id: "audit", label: "Audit Log", icon: <History className="h-3.5 w-3.5" /> },
+  { id: "ndpa", label: "NDPA Compliance", icon: <BadgeCheck className="h-3.5 w-3.5" /> },
+  { id: "profile", label: "My Profile", icon: <User className="h-3.5 w-3.5" /> },
+] as const;
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -44,6 +57,8 @@ function Settings() {
   const me = useMe();
   const isAdmin = can(me.data?.roles, ["admin"]);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>("rules");
+  const currentStep = SETTINGS_TABS.findIndex((t) => t.id === activeTab) + 1;
 
   return (
     <div className="space-y-8 pb-16 max-w-7xl mx-auto">
@@ -88,61 +103,26 @@ function Settings() {
         </div>
       </header>
 
-      {/* 2. Sleek Segmented Tabs Navigation */}
-      <Tabs defaultValue="rules" className="space-y-6">
-        <div className="border-b border-slate-200/80 pb-1">
-          <TabsList className="h-10 bg-slate-100/80 p-1 rounded-lg gap-1 border border-slate-200/60">
-            <TabsTrigger
-              value="rules"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
-              <span>Approval Rules</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="team"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <Users className="h-3.5 w-3.5 text-slate-500" />
-              <span>Team &amp; Permissions</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="delegations"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <UserCheck className="h-3.5 w-3.5 text-slate-500" />
-              <span>Delegations (FR-2.6)</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="billing"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <CreditCard className="h-3.5 w-3.5 text-slate-500" />
-              <span>Subscription &amp; Billing</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="audit"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <History className="h-3.5 w-3.5 text-slate-500" />
-              <span>Audit Log</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="ndpa"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <BadgeCheck className="h-3.5 w-3.5 text-slate-500" />
-              <span>NDPA Compliance</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="profile"
-              className="flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs font-medium text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:font-semibold transition-all shadow-none data-[state=active]:shadow-2xs cursor-pointer"
-            >
-              <User className="h-3.5 w-3.5 text-slate-500" />
-              <span>My Profile</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      {/* 2. Executive Chevron Stepper Navigation */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => setActiveTab(val as SettingsTab)}
+        className="space-y-6"
+      >
+        <Stepper
+          steps={SETTINGS_TABS.map((tab) => ({
+            label: tab.label,
+            icon: tab.icon,
+          }))}
+          currentStep={currentStep > 0 ? currentStep : 1}
+          allStepsClickable
+          onStepChange={(stepNumber) => {
+            const selected = SETTINGS_TABS[stepNumber - 1];
+            if (selected) {
+              setActiveTab(selected.id);
+            }
+          }}
+        />
 
         {/* Tab 1: Approval Rules */}
         <TabsContent value="rules" className="mt-0 space-y-6">

@@ -25,12 +25,14 @@ export interface StepperProps {
   currentStep: number;
   /** Array of step numbers that have been completed (e.g. [1, 2]) */
   completedSteps?: number[] | undefined;
-  /** Callback fired when a clickable completed step is selected */
+  /** Callback fired when a clickable step is selected */
   onStepChange?: ((step: number) => void) | undefined;
   /** Optional custom icons for each step (array matching labels length) */
   icons?: ReactNode[] | undefined;
   /** Optional additional CSS classes for the container */
   className?: string | undefined;
+  /** Allow clicking all steps (including upcoming) to switch tabs/pages */
+  allStepsClickable?: boolean | undefined;
 
   // Integrated Navigation Controls / Footer
   /** Whether to render the integrated navigation footer controls */
@@ -117,6 +119,7 @@ export const Stepper = ({
   onStepChange,
   icons,
   className = "",
+  allStepsClickable = false,
   showFooter = false,
   onNext,
   onPrev,
@@ -151,8 +154,9 @@ export const Stepper = ({
   const isStepUpcoming = (step: number) => step > currentStep && !isStepCompleted(step);
 
   const handleStepClick = (stepNumber: number, isCompleted: boolean) => {
-    // Only completed steps are clickable to navigate backwards in the flow
-    if (isCompleted && onStepChange) {
+    // If allStepsClickable is true, any inactive step is clickable; otherwise only completed steps
+    const canClick = allStepsClickable ? stepNumber !== currentStep : isCompleted;
+    if (canClick && onStepChange) {
       onStepChange(stepNumber);
     }
   };
@@ -172,6 +176,7 @@ export const Stepper = ({
             const isUpcoming = isStepUpcoming(stepNumber);
             const isFirst = index === 0;
             const isLast = index === totalSteps - 1;
+            const isClickable = !isActive && (allStepsClickable || isCompleted);
 
             // Stacking Order:
             // Active is topmost (30).
@@ -197,22 +202,25 @@ export const Stepper = ({
             let textClasses = "";
 
             if (isActive) {
-              // Vibrant Orange/Amber matching the reference design
+              // Vibrant Executive Brand Accent (#0001FF)
               stateClasses =
-                "bg-[#EA580C] text-white shadow-xs focus-visible:ring-2 focus-visible:ring-orange-400";
-              badgeClasses = "bg-white text-[#EA580C] font-bold shadow-2xs";
+                "bg-[#0001FF] text-white shadow-xs focus-visible:ring-2 focus-visible:ring-[#0001FF]/50";
+              badgeClasses = "bg-white text-[#0001FF] font-bold shadow-2xs";
               textClasses = "text-white font-bold tracking-tight";
             } else if (isCompleted) {
-              // Subtle slate-blue / gray matching the reference design
+              // Completed step: subtle slate with checkmark
               stateClasses =
                 "bg-slate-200/85 hover:bg-slate-300/80 text-slate-800 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-slate-400";
               badgeClasses = "bg-slate-900 text-emerald-400 font-bold";
               textClasses = "text-slate-800 font-semibold";
             } else {
-              // Upcoming step: muted, clean, non-clickable
-              stateClasses = "bg-white/80 text-slate-500 opacity-90 cursor-not-allowed";
-              badgeClasses = "bg-slate-200/90 text-slate-500 font-medium";
-              textClasses = "text-slate-500 font-medium";
+              // Upcoming step: clean slate background
+              const interactiveClasses = allStepsClickable
+                ? "bg-white/90 hover:bg-white text-slate-700 cursor-pointer transition-colors hover:shadow-2xs"
+                : "bg-white/80 text-slate-500 opacity-90 cursor-not-allowed";
+              stateClasses = interactiveClasses;
+              badgeClasses = "bg-slate-200/90 text-slate-600 font-medium";
+              textClasses = allStepsClickable ? "text-slate-700 font-medium" : "text-slate-500 font-medium";
             }
 
             return (
@@ -222,15 +230,15 @@ export const Stepper = ({
                 style={{ zIndex }}
                 className={`group relative flex-1 min-w-[130px] sm:min-w-0 ${!isFirst ? "-ml-3 sm:-ml-3.5" : ""}`}
                 aria-current={isActive ? "step" : undefined}
-                aria-disabled={isUpcoming ? "true" : undefined}
+                aria-disabled={isUpcoming && !allStepsClickable ? "true" : undefined}
               >
                 <div
-                  role={isCompleted ? "button" : undefined}
-                  tabIndex={isCompleted ? 0 : -1}
+                  role={isClickable ? "button" : undefined}
+                  tabIndex={isClickable ? 0 : -1}
                   aria-label={`Step ${stepNumber}: ${item.label} (${isActive ? "Current" : isCompleted ? "Completed" : "Upcoming"})`}
                   onClick={() => handleStepClick(stepNumber, isCompleted)}
                   onKeyDown={(e) => {
-                    if (isCompleted && (e.key === "Enter" || e.key === " ")) {
+                    if (isClickable && (e.key === "Enter" || e.key === " ")) {
                       e.preventDefault();
                       handleStepClick(stepNumber, isCompleted);
                     }
@@ -396,7 +404,7 @@ export const StepperFooter = ({
             type="button"
             onClick={onNext}
             disabled={isNextDisabled || isSubmitting}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] px-4 text-xs font-bold text-white shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-orange-400 cursor-pointer transition-colors"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#0001FF] hover:bg-[#0B1457] px-4 text-xs font-bold text-white shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#0001FF]/50 cursor-pointer transition-colors"
           >
             {isSubmitting ? (
               <>

@@ -46,13 +46,13 @@ describe("Chevron Stepper Component", () => {
     assert.equal(step1Div.props.tabIndex, 0);
     assert.ok(step1Div.props.className.includes("bg-slate-200"));
 
-    // Step 2: Active
+    // Step 2: Active (Brand Color #0001FF)
     assert.equal(items[1].props["aria-current"], "step");
     assert.equal(items[1].props["aria-disabled"], undefined);
     const step2Div = items[1].props.children;
     assert.equal(step2Div.props.role, undefined);
     assert.equal(step2Div.props.tabIndex, -1);
-    assert.ok(step2Div.props.className.includes("bg-[#EA580C]"));
+    assert.ok(step2Div.props.className.includes("bg-[#0001FF]"));
 
     // Step 3: Upcoming
     assert.equal(items[2].props["aria-current"], undefined);
@@ -275,6 +275,26 @@ describe("Chevron Stepper Component", () => {
       const step5Div = items[4].props.children;
       const step5Divider = step5Div.props.children[2];
       assert.equal(step5Divider, false);
+    });
+
+    it("allows clicking any step when allStepsClickable is true (e.g. tabs navigation)", () => {
+      const selections: number[] = [];
+      const vdom = Stepper({
+        labels: ["Approval Rules", "Team & Permissions", "Delegations", "Billing"],
+        currentStep: 1,
+        allStepsClickable: true,
+        onStepChange: (step) => selections.push(step),
+      });
+
+      const items = vdom.props.children[0].props.children.props.children;
+
+      // Click step 3 directly (upcoming step)
+      items[2].props.children.props.onClick();
+      assert.deepEqual(selections, [3]);
+
+      // Click step 2
+      items[1].props.children.props.onClick();
+      assert.deepEqual(selections, [3, 2]);
     });
   });
 });
